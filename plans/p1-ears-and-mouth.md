@@ -65,7 +65,7 @@ Build a **plain LiveKit room** path too (launcher "Start room" → humans + Rahi
 
 ## Phase 4 — Wire to the others
 1. **Passive:** POST every utterance to `/ingest` (P2).
-2. **Active:** on a wake request, POST to `/agent` (P3) → TTS the `text`; **post the diagram link** (workspace `/m/:meetingId`) into Meet chat.
+2. **Active:** on a wake request, POST to `/agent` (P3) → **TTS the `text` into the meeting** (Rahid talks back — incl. "Hey Rahid, repeat"). Diagrams **render on the web workspace** (P3 pushes them to `/events`); optionally also drop the workspace link in Meet chat.
 3. Add a "one sec…" filler so the 1–2s feels natural.
 
 **Done when:** you speak → P2 stores it; you call Rahid → it answers out loud + drops the diagram link.

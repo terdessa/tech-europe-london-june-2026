@@ -7,8 +7,8 @@
 
 You are Rahid's **face.** The meeting itself is where the live action happens (Rahid talks + posts a diagram link in the Meet chat), so your web app is intentionally small — **one React app, three states**:
 1. **Launcher (`/`)** — paste the **Google Meet link** + upload prep docs → "Send Rahid."
-2. **Workspace (`/m/:meetingId`)** — *during:* optional companion that polls `/events` and shows diagrams/answers (also the page the in-chat diagram link opens). *After:* same page flips to summary + Q&A.
-3. (Diagrams render inside the workspace; no separate dashboard.)
+2. **Workspace (`/m/:meetingId`)** — the **full live screen** showing everything: the running **conversation/transcript**, Rahid's **chat answers**, the **diagrams/graphs** (all visuals live here), and a **meeting actions + data** panel. *After:* same page becomes summary + decisions + action items + **Q&A** over the full record.
+3. (All visuals render inside the workspace; no separate dashboard. Meet stays voice + text-chat only.)
 
 You also render diagrams (editable) and run the Aikido scan.
 
@@ -37,12 +37,12 @@ You also render diagrams (editable) and run the Aikido scan.
 
 **Done when:** the budget diagram renders and updates as you edit the code.
 
-## Phase 2 — Workspace page (against mock events)
-1. Route `/m/:meetingId`. Poll `/events?meetingId=` (use `sample-events.json` first).
-2. Render a feed of **cards**: answers (text + sources) and diagrams (rendered). This is also what the in-Meet-chat link opens.
-3. Keep it clean — it's a light companion during the call, and becomes the workspace after.
+## Phase 2 — Workspace page (against mocks)
+1. Route `/m/:meetingId`. Poll **`/events`** (Rahid's answers + diagrams) **and `/transcript`** (live conversation). Use `sample-events.json` + `sample-transcript.json`.
+2. One live screen, four areas: **live conversation/transcript** (speaker-labeled) · **Rahid's answer cards** (text + sources) · **diagrams/graphs** rendered (the visual surface) · **meeting actions + data** panel.
+3. After the meeting: the same page shows summary / decisions / action items + the Q&A box.
 
-**Done when:** mock events show as nice cards/diagrams on `/m/:meetingId`.
+**Done when:** mock transcript + events fill all four areas on `/m/:meetingId` live.
 
 ## Phase 3 — Launcher (pre-meeting)
 1. Generate a `meetingId`. Form: **paste the Google Meet link** + paste text / add links / (optional) upload a file → `POST /sources` (§3.2).

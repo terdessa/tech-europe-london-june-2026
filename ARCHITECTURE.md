@@ -30,6 +30,15 @@ POST-MEETING  (meeting ends)
   [P4] Pop-up app Q&A: question ──POST /ask──▶ [P3] ──▶ /retrieve [P2] + Gemini ──▶ answer + sources
 ```
 
+## 1b. Interaction surfaces (where each thing happens)
+
+| Interaction | Surface |
+|---|---|
+| Rahid listening + **speaking** (voice, incl. "Hey Rahid, repeat") | **In the meeting** (SLNG STT/TTS) |
+| Text chat | **In the meeting chat** |
+| **Diagrams / graphs (all visuals)** | **On the web page** (workspace `/m/:meetingId`) |
+| Live conversation/transcript, meeting history, actions + data, post-meeting Q&A | **On the web page** (one live screen, then the after-meeting workspace) |
+
 ## 2. Components & ownership
 
 | ID | Component | Owner | Responsibility |
