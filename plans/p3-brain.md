@@ -5,16 +5,16 @@
 
 ## Your mission
 
-You are Rahid's **brain.** You take a request (live or post-meeting), pull the relevant context from Memory, reason with Gemini, and return either a spoken **answer** or a **diagram** (as Mermaid code). After the meeting, you run the pipeline that turns the whole transcript into a summary, decisions, action items, and artifacts.
+You are Flash's **brain.** You take a request (live or post-meeting), pull the relevant context from Memory, reason with Gemini, and return either a spoken **answer** or a **diagram** (as Mermaid code). After the meeting, you run the pipeline that turns the whole transcript into a summary, decisions, action items, and artifacts.
 
 ## What you own
 - **n8n workflows:** the live `/agent` flow + the post-meeting `/finalize` + `/ask`.
-- **Gemini integration:** reasoning, answer generation, **diagram-as-code** generation.
+- **Gemini integration:** reasoning, answer generation, **diagram-as-code** generation, **screen-frame vision** (`/vision`).
 - The **events feed** the UI polls (`/events`).
 - Triggering the **Aikido** scan from the post-meeting pipeline (with P4).
 
 ## Contracts you serve/call (from ARCHITECTURE §3)
-- Serve: `POST /agent` (§3.5), `GET /events` (§3.6), `POST /finalize` + `POST /ask` (§3.7).
+- Serve: `POST /agent` (§3.5), `GET /events` (§3.6), `POST /finalize` + `POST /ask` (§3.7), `POST /vision` (§3.9).
 - Call: P2 `GET /retrieve` (§3.3) + `GET /transcript` (§3.4).
 
 ## Phase 0 — Setup (joint, 30 min)
@@ -25,9 +25,10 @@ You are Rahid's **brain.** You take a request (live or post-meeting), pull the r
 ## Phase 1 — Gemini helpers (CLI, no others needed)
 1. `answer(question, contextChunks) -> { text, sources }` — grounded answer; instruct Gemini to only use provided context and cite it.
 2. `makeDiagram(request, contextChunks) -> { text, mermaidCode }` — output **valid Mermaid** (give it 2–3 few-shot examples; validate it parses).
-3. Test from a CLI with mock chunks (incl. the budget example) → confirm a clean Mermaid `flowchart`.
+3. `describeScreen(imageBase64) -> { description, data? }` — Gemini **vision**: describe a screen-share frame (extract tables/numbers/key content) for P1's `/vision`.
+4. Test from a CLI with mock chunks (incl. the budget example) → confirm a clean Mermaid `flowchart`, and that `describeScreen` summarizes a test image.
 
-**Done when:** CLI turns "make a diagram of our budget" + mock context into valid Mermaid.
+**Done when:** CLI turns "make a diagram of our budget" + mock context into valid Mermaid, and `describeScreen` returns a sensible description.
 
 ## Phase 2 — The live agent workflow (n8n) ⭐
 Build the `/agent` webhook workflow with **real branching** (this is what wins the n8n prize):
@@ -57,6 +58,7 @@ Build the `/agent` webhook workflow with **real branching** (this is what wins t
 - [ ] n8n running; Gemini helper (swappable model)
 - [ ] `answer()` grounded + cites sources
 - [ ] `makeDiagram()` emits valid Mermaid
+- [ ] `describeScreen()` + `POST /vision` endpoint (Gemini vision)
 - [ ] `/agent` workflow with diagram/question **branch** (+ optional Tavily)
 - [ ] `/events` feed for the UI
 - [ ] `/finalize` (summary/decisions/actions) + `/ask` (grounded Q&A)
