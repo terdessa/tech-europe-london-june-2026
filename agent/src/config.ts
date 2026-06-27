@@ -19,7 +19,8 @@ export const CONFIG = {
   /** Voice backend: "console" (log) | "local" (Windows TTS, zero-key) | "slng". */
   voice: (process.env.VOICE ?? "console").toLowerCase(),
   slngApiKey: process.env.SLNG_API_KEY ?? "",
-  slngTtsUrl: process.env.SLNG_TTS_URL ?? "",
+  slngTtsUrl: process.env.SLNG_TTS_URL ?? "https://api.slng.ai/v1/tts/slng/deepgram/aura:2-en",
+  slngModel: process.env.SLNG_TTS_MODEL ?? "aura-2-thalia-en",
 
   /** Screen capture (eyes). When on, Flash passively watches shared screens + answers screen questions. */
   screenCapture: (process.env.SCREEN_CAPTURE ?? "off").toLowerCase() === "on",

@@ -36,7 +36,20 @@ export class LocalSpeaker implements Speaker {
   }
 }
 
-/** Real voice via SLNG TTS (VOICE=slng). Writes audio to data/tts/ for now. */
+/** Plays a WAV file through the default Windows audio output (blocks until done). */
+function playWavWindows(file: string): Promise<void> {
+  return new Promise((resolve) => {
+    const ps = spawn("powershell", [
+      "-NoProfile",
+      "-Command",
+      `(New-Object System.Media.SoundPlayer '${file.replace(/'/g, "''")}').PlaySync()`,
+    ]);
+    ps.on("close", () => resolve());
+    ps.on("error", () => resolve());
+  });
+}
+
+/** Real voice via SLNG TTS (VOICE=slng): synthesize the WAV, save it, and play it. */
 export class SlngSpeaker implements Speaker {
   async speak(text: string): Promise<void> {
     console.log(`\n[🔊 ${CONFIG.agentName} (SLNG)]: ${text}\n`);
@@ -48,18 +61,24 @@ export class SlngSpeaker implements Speaker {
       const r = await fetch(CONFIG.slngTtsUrl, {
         method: "POST",
         headers: { "content-type": "application/json", authorization: `Bearer ${CONFIG.slngApiKey}` },
-        body: JSON.stringify({ text }), // TODO: match SLNG schema (voice id, format)
+        body: JSON.stringify({ model: CONFIG.slngModel, text }),
       });
       if (!r.ok) {
-        console.warn(`[slng] TTS ${r.status} ${r.statusText}`);
+        let detail = "";
+        try {
+          detail = (await r.text()).slice(0, 200);
+        } catch {
+          /* ignore */
+        }
+        console.warn(`[slng] TTS ${r.status} ${r.statusText} ${detail}`);
         return;
       }
       const audio = Buffer.from(await r.arrayBuffer());
       const dir = path.resolve(__dirname, "../../data/tts");
       fs.mkdirSync(dir, { recursive: true });
-      const file = path.join(dir, `tts-${Date.now()}.mp3`);
+      const file = path.join(dir, `tts-${Date.now()}.wav`);
       fs.writeFileSync(file, audio);
-      console.log(`[slng] wrote ${file} (${audio.length} bytes)`);
+      await playWavWindows(file);
     } catch (err) {
       console.warn("[slng] TTS failed:", (err as Error).message);
     }
