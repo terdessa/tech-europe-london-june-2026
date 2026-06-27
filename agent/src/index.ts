@@ -35,7 +35,11 @@ app.post("/join", async (req, res) => {
 app.listen(CONFIG.port, () => {
   console.log(`${CONFIG.agentName} agent runtime listening on :${CONFIG.port}`);
   console.log(
-    `Try:  curl -XPOST localhost:${CONFIG.port}/join -H "content-type: application/json" ` +
+    `Try (PowerShell):  Invoke-RestMethod -Uri http://localhost:${CONFIG.port}/join -Method Post ` +
+      `-ContentType "application/json" -Body '{"meetingId":"m_sample","meetUrl":"https://meet.google.com/test"}'`,
+  );
+  console.log(
+    `Try (curl/bash):   curl.exe -X POST localhost:${CONFIG.port}/join -H "content-type: application/json" ` +
       `-d '{"meetingId":"m_sample","meetUrl":"https://meet.google.com/test"}'`,
   );
 });
