@@ -1,0 +1,13 @@
+{
+  "meetingId": "m_sample",
+  "utterances": [
+    { "meetingId": "m_sample", "speaker": "Alice", "ts": 1719500000, "text": "Okay, let's go through the Q3 budget." },
+    { "meetingId": "m_sample", "speaker": "Alice", "ts": 1719500008, "text": "We have 5000 total for the quarter." },
+    { "meetingId": "m_sample", "speaker": "Bob", "ts": 1719500015, "text": "We already spent 500 on design." },
+    { "meetingId": "m_sample", "speaker": "Alice", "ts": 1719500022, "text": "And 1000 on ads last week." },
+    { "meetingId": "m_sample", "speaker": "Bob", "ts": 1719500030, "text": "So we have 3500 left to allocate." },
+    { "meetingId": "m_sample", "speaker": "Alice", "ts": 1719500045, "text": "Can we see that clearly?" },
+    { "meetingId": "m_sample", "speaker": "Bob", "ts": 1719500050, "text": "Hey Flash, make a diagram of our budget." },
+    { "meetingId": "m_sample", "speaker": "Alice", "ts": 1719500075, "text": "Nice. What should we cut to save another 1000?" }
+  ]
+}
