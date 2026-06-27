@@ -31,7 +31,15 @@ export type SourceItem =
   | { type: "doc"; title?: string; content: string }
   | { type: "link"; title?: string; url: string }
   | { type: "pdf"; title?: string; url?: string; path?: string }
-  | { type: "image"; title?: string; url?: string; path?: string };
+  | { type: "image"; title?: string; url?: string; path?: string }
+  // §3.2b P4 ▶ P2 — full serialized canvas snapshot (text rendering + raw graph).
+  // Indexed by Superlinked so Flash can retrieve over visual meeting memory.
+  | {
+      type: "canvas";
+      title?: string;
+      content: string;
+      metadata?: Record<string, unknown>;
+    };
 
 export type SourcesRequest = {
   meetingId: MeetingId;

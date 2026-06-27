@@ -96,6 +96,22 @@ const prepareItem = async (
     };
   }
 
+  // canvas — a serialized graph snapshot from P4. Chunk + embed its text
+  // rendering exactly like a doc, but keep `source: "canvas"` so /retrieve
+  // surfaces visual meeting memory distinctly (p4-plan "Canvas Memory Contract").
+  if (item.type === "canvas") {
+    return {
+      sourceId,
+      meetingId,
+      type: "canvas",
+      title,
+      url: null,
+      rawText: item.content,
+      chunks: chunkText(item.content),
+      warnings,
+    };
+  }
+
   if (item.type === "link") {
     const { text, warning } = await fetchLinkText(item.url);
     if (warning) warnings.push(warning);
@@ -243,6 +259,7 @@ const validateItem = (item: unknown): item is SourceItem => {
   if (typeof it["type"] !== "string") return false;
   switch (it["type"]) {
     case "doc":
+    case "canvas":
       return requireNonEmptyString(it["content"]);
     case "link":
       return requireNonEmptyString(it["url"]);
@@ -269,7 +286,7 @@ export const handleSources = async (req: Request, res: Response): Promise<void> 
     return;
   }
   if (!body.items.every(validateItem)) {
-    sendError(res, 400, "each item must be { type: 'doc'|'link'|'pdf'|'image' } with required fields");
+    sendError(res, 400, "each item must be { type: 'doc'|'link'|'pdf'|'image'|'canvas' } with required fields");
     return;
   }
 
