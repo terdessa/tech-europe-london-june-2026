@@ -9,6 +9,7 @@ dist/
 build/
 *.log
 npm-debug.log*
+.n8n-local/
 
 # python
 __pycache__/
@@ -19,10 +20,10 @@ venv/
 # data / db
 *.sqlite
 *.sqlite3
+*.sqlite-journal
 *.db
+data/
 data/context/
-
-# tts audio output
 data/tts/
 
 # google meet bot profile (holds your Google session — never commit)

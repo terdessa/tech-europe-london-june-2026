@@ -1,0 +1,1541 @@
+{
+  "name": "Flash-Agent",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "agent",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "c8676141-799f-4459-9834-a6f53bb6225a",
+      "name": "Webhook Agent",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        160,
+        480
+      ],
+      "webhookId": "b2fe6573-0cd0-4fb3-a419-d5fdb5e838cb"
+    },
+    {
+      "parameters": {
+        "jsCode": "const body = $input.first().json.body || {};\nconst meetingId = String(body.meetingId || '').trim();\nconst requestText = String(body.requestText || '').trim();\nif (!meetingId || !requestText) throw new Error('POST /agent requires { meetingId, requestText }.');\nreturn [{ json: { meetingId, requestText } }];"
+      },
+      "id": "40c839a1-850b-4ff4-af46-951d07239132",
+      "name": "Build Agent Request",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        380,
+        480
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{ ($env.CONTEXT_SERVICE_URL || 'http://localhost:3000') + '/retrieve' }}",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "meetingId",
+              "value": "={{ $json.meetingId }}"
+            },
+            {
+              "name": "query",
+              "value": "={{ $json.requestText }}"
+            },
+            {
+              "name": "k",
+              "value": "8"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 10000
+        }
+      },
+      "id": "d470209c-e5a8-4b6b-906a-129924a55952",
+      "name": "Retrieve Context",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        600,
+        480
+      ],
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const request = $('Build Agent Request').first().json;\nconst chunks = Array.isArray($input.first().json.chunks) ? $input.first().json.chunks : [];\nconst contextLines = chunks.map((chunk, index) => {\n  const source = chunk.source || chunk.type || 'context';\n  const speaker = chunk.speaker || chunk.title || `source ${index + 1}`;\n  const text = chunk.text || chunk.content || '';\n  return `[${source}] ${speaker}: ${text}`;\n}).filter(Boolean);\nconst sources = chunks.map((chunk, index) => `${chunk.source || chunk.type || 'context'}: ${chunk.speaker || chunk.title || `source ${index + 1}`}`);\nreturn [{ json: { meetingId: request.meetingId, requestText: request.requestText, contextText: contextLines.join('\\n'), contextChunks: chunks, sources, hasContext: chunks.length > 0, retrievalError: false } }];"
+      },
+      "id": "ace87d73-2206-4cf6-98e7-d8ca240c6cab",
+      "name": "Prepare Context",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        820,
+        384
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const request = $('Build Agent Request').first().json;\nreturn [{ json: { meetingId: request.meetingId, requestText: request.requestText, contextText: '', contextChunks: [], sources: [], hasContext: false, retrievalError: true } }];"
+      },
+      "id": "f51b745e-3137-4637-8452-b67582ffa160",
+      "name": "Context Retrieval Fallback",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        820,
+        592
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.requestText.toLowerCase() }}",
+              "rightValue": "diagram",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              },
+              "id": "b9e0ce82-36b5-4c84-ac6e-ecaeab99a12c"
+            },
+            {
+              "leftValue": "={{ $json.requestText.toLowerCase() }}",
+              "rightValue": "draw",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              },
+              "id": "d99c5013-7138-4139-8785-860bdf6c4727"
+            },
+            {
+              "leftValue": "={{ $json.requestText.toLowerCase() }}",
+              "rightValue": "map",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              },
+              "id": "2804eb06-ccad-41a2-a3bb-7b165cd6b7ce"
+            },
+            {
+              "leftValue": "={{ $json.requestText.toLowerCase() }}",
+              "rightValue": "flowchart",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              },
+              "id": "499de753-ad76-4272-810d-4df008ea73c9"
+            },
+            {
+              "leftValue": "={{ $json.requestText.toLowerCase() }}",
+              "rightValue": "chart",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              },
+              "id": "d7dd0783-c799-4155-b01d-504cb4b25ad0"
+            },
+            {
+              "leftValue": "={{ $json.requestText.toLowerCase() }}",
+              "rightValue": "visualize",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              },
+              "id": "e2c20e4e-9cac-4a1b-9a2e-fc74ad210dc0"
+            },
+            {
+              "leftValue": "={{ $json.requestText.toLowerCase() }}",
+              "rightValue": "visualise",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              },
+              "id": "0b4e3747-dba5-4cfb-bc2b-e44e9e7fa208"
+            },
+            {
+              "leftValue": "={{ $json.requestText.toLowerCase() }}",
+              "rightValue": "graph",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              },
+              "id": "a3a4eba5-3ffd-4f43-bbcb-7ef6fc2859bd"
+            },
+            {
+              "leftValue": "={{ $json.requestText.toLowerCase() }}",
+              "rightValue": "architecture",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              },
+              "id": "178cbf38-8101-447a-a236-1eb402993fb1"
+            },
+            {
+              "leftValue": "={{ $json.requestText.toLowerCase() }}",
+              "rightValue": "breakdown",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              },
+              "id": "536c5844-bbbd-4294-a8a6-43bb76ad92a5"
+            }
+          ],
+          "combinator": "or"
+        },
+        "options": {}
+      },
+      "id": "e9471074-1381-49aa-b473-7dce49ce02ae",
+      "name": "Classify Request",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1040,
+        480
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = $input.first().json;\nconst prompt = `Meeting context:\\n${item.contextText || '(no retrieved context)'}\\n\\nUser request: ${item.requestText}\\n\\nReturn ONLY valid JSON with this shape:\\n{\\n  \"type\": \"diagram\",\\n  \"text\": \"short spoken response\",\\n  \"diagramCode\": \"valid Mermaid flowchart TD code\",\\n  \"sources\": [\"source labels used\"]\\n}\\n\\nRules:\\n- Ground the diagram only in the meeting context.\\n- If the context is insufficient, return type \"answer\", explain that, set diagramCode to null, and keep sources empty.\\n- Mermaid must start with flowchart TD and must not be wrapped in backticks.`;\nreturn [{ json: { ...item, prompt } }];"
+      },
+      "id": "f8b04afc-4b2a-4483-a309-ca6000c42212",
+      "name": "Build Diagram Prompt",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1260,
+        288
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ 'https://generativelanguage.googleapis.com/v1beta/models/' + ($env.GEMINI_MODEL || 'gemini-3.5-flash') + ':generateContent' }}",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "key",
+              "value": "={{ $env.GEMINI_API_KEY }}"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ contents: [{ parts: [{ text: $json.prompt }] }], generationConfig: { responseMimeType: 'application/json' } }) }}",
+        "options": {
+          "timeout": 20000
+        }
+      },
+      "id": "0a01fcb0-f62a-488c-8fcc-19ace94effb9",
+      "name": "Gemini Diagram",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1480,
+        288
+      ],
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "function extractGeminiText(payload) {\n  if (!payload) return '';\n  if (typeof payload === 'string') return payload;\n  if (payload.output) return typeof payload.output === 'string' ? payload.output : JSON.stringify(payload.output);\n  if (payload.text) return payload.text;\n  const parts = payload.candidates?.[0]?.content?.parts || [];\n  return parts.map(part => part.text || '').join('\\n').trim();\n}\n\nfunction parseModelJson(text, fallback) {\n  const cleaned = String(text || '')\n    .replace(/^```(?:json|mermaid)?\\s*/i, '')\n    .replace(/```$/i, '')\n    .trim();\n  if (!cleaned) return fallback;\n  try {\n    return JSON.parse(cleaned);\n  } catch (error) {\n    const start = cleaned.indexOf('{');\n    const end = cleaned.lastIndexOf('}');\n    if (start >= 0 && end > start) {\n      try { return JSON.parse(cleaned.slice(start, end + 1)); } catch (_) {}\n    }\n    return { ...fallback, text: cleaned };\n  }\n}\nconst sourceItem = $('Build Diagram Prompt').first().json;\nconst parsed = parseModelJson(extractGeminiText($input.first().json), { type: 'answer', text: 'I could not generate a grounded diagram from the retrieved context.', diagramCode: null, sources: [] });\nconst diagramCode = parsed.diagramCode ? String(parsed.diagramCode).replace(/^```(?:mermaid)?\\s*/i, '').replace(/```$/i, '').trim() : null;\nreturn [{ json: { meetingId: sourceItem.meetingId, type: parsed.type === 'diagram' && diagramCode ? 'diagram' : 'answer', text: parsed.text || 'Diagram generated.', diagramCode, sources: Array.isArray(parsed.sources) && parsed.sources.length ? parsed.sources : sourceItem.sources } }];"
+      },
+      "id": "43289883-6b89-4a6e-9baf-0170e1faf1dc",
+      "name": "Parse Diagram",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1700,
+        288
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const sourceItem = $('Build Diagram Prompt').first().json;\nreturn [{ json: { meetingId: sourceItem.meetingId, type: 'answer', text: sourceItem.hasContext ? 'I had trouble generating the diagram. Try asking again with a narrower request.' : 'I do not have enough retrieved meeting context to generate a grounded diagram yet.', diagramCode: null, sources: [] } }];"
+      },
+      "id": "ef193145-4bd0-4fb5-ab46-dca5cff17c4d",
+      "name": "Diagram Error Handler",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1700,
+        448
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = $input.first().json;\nif (item.type !== 'diagram') return [{ json: item }];\nconst code = String(item.diagramCode || '').trim();\nconst validPrefixes = ['flowchart', 'graph', 'sequenceDiagram', 'classDiagram', 'stateDiagram', 'journey', 'erDiagram', 'gantt', 'pie'];\nconst isValid = validPrefixes.some(prefix => code.startsWith(prefix));\nreturn [{ json: isValid ? { ...item, diagramCode: code } : { meetingId: item.meetingId, type: 'answer', text: 'I generated a response, but the diagram code was not valid Mermaid.', diagramCode: null, sources: item.sources || [] } }];"
+      },
+      "id": "32a28080-bbf6-4e8a-95b8-86aab46b54b0",
+      "name": "Validate Mermaid",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1920,
+        288
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = $input.first().json;\nconst prompt = `Meeting context:\\n${item.contextText || '(no retrieved context)'}\\n\\nQuestion: ${item.requestText}\\n\\nReturn ONLY valid JSON with this shape:\\n{\\n  \"type\": \"answer\",\\n  \"text\": \"grounded concise answer\",\\n  \"sources\": [\"source labels used\"]\\n}\\n\\nRules:\\n- Answer only from the provided meeting context.\\n- If context is insufficient, say exactly what is missing.\\n- Cite speakers/documents in sources.\\n- Do not invent facts.`;\nreturn [{ json: { ...item, prompt } }];"
+      },
+      "id": "c5daf224-0720-4e2f-9282-00b351b65d70",
+      "name": "Build Answer Prompt",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1260,
+        672
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ 'https://generativelanguage.googleapis.com/v1beta/models/' + ($env.GEMINI_MODEL || 'gemini-3.5-flash') + ':generateContent' }}",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "key",
+              "value": "={{ $env.GEMINI_API_KEY }}"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ contents: [{ parts: [{ text: $json.prompt }] }], generationConfig: { responseMimeType: 'application/json' } }) }}",
+        "options": {
+          "timeout": 20000
+        }
+      },
+      "id": "42be6bf7-6512-4f3c-9ebe-78d6f638cfbd",
+      "name": "Gemini Answer",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1480,
+        672
+      ],
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "function extractGeminiText(payload) {\n  if (!payload) return '';\n  if (typeof payload === 'string') return payload;\n  if (payload.output) return typeof payload.output === 'string' ? payload.output : JSON.stringify(payload.output);\n  if (payload.text) return payload.text;\n  const parts = payload.candidates?.[0]?.content?.parts || [];\n  return parts.map(part => part.text || '').join('\\n').trim();\n}\n\nfunction parseModelJson(text, fallback) {\n  const cleaned = String(text || '')\n    .replace(/^```(?:json|mermaid)?\\s*/i, '')\n    .replace(/```$/i, '')\n    .trim();\n  if (!cleaned) return fallback;\n  try {\n    return JSON.parse(cleaned);\n  } catch (error) {\n    const start = cleaned.indexOf('{');\n    const end = cleaned.lastIndexOf('}');\n    if (start >= 0 && end > start) {\n      try { return JSON.parse(cleaned.slice(start, end + 1)); } catch (_) {}\n    }\n    return { ...fallback, text: cleaned };\n  }\n}\nconst sourceItem = $('Build Answer Prompt').first().json;\nconst parsed = parseModelJson(extractGeminiText($input.first().json), { type: 'answer', text: 'I could not generate a grounded answer from the retrieved context.', sources: [] });\nreturn [{ json: { meetingId: sourceItem.meetingId, type: 'answer', text: parsed.text || 'I do not have enough retrieved meeting context to answer that yet.', diagramCode: null, sources: Array.isArray(parsed.sources) && parsed.sources.length ? parsed.sources : sourceItem.sources } }];"
+      },
+      "id": "b36a41a9-4c77-4aab-8e8c-43bdbc74f7ee",
+      "name": "Parse Answer",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1700,
+        672
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const sourceItem = $('Build Answer Prompt').first().json;\nreturn [{ json: { meetingId: sourceItem.meetingId, type: 'answer', text: sourceItem.hasContext ? 'I had trouble answering that from the retrieved context. Try again in a moment.' : 'I do not have enough retrieved meeting context to answer that yet.', diagramCode: null, sources: [] } }];"
+      },
+      "id": "da28b6b5-e31b-45b6-9dec-4912cedc14f9",
+      "name": "Answer Error Handler",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1700,
+        832
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = $input.first().json;\nconst event = { kind: 'agent_response', meetingId: item.meetingId, type: item.type || 'answer', text: item.text || '', diagramCode: item.diagramCode || null, sources: Array.isArray(item.sources) ? item.sources : [], ts: Date.now() };\nconst staticData = $getWorkflowStaticData('global');\nstaticData.flashEvents = Array.isArray(staticData.flashEvents) ? staticData.flashEvents : [];\nstaticData.flashEvents.push(event);\nstaticData.flashEvents = staticData.flashEvents.slice(-200);\nreturn [{ json: { type: event.type, text: event.text, diagramCode: event.diagramCode, sources: event.sources } }];"
+      },
+      "id": "a045dc3e-9997-402f-ab51-947ef67cccd1",
+      "name": "Store Agent Event",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2140,
+        480
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "254526c4-e5c3-4ad8-a069-e383ccdd5fe9",
+      "name": "Respond Agent",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        2360,
+        480
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "events",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "c27bc4e7-6103-41f3-a66e-9886abf56122",
+      "name": "Webhook Events",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        160,
+        1040
+      ],
+      "webhookId": "9c69563f-c7fa-47a3-becd-71a14ce1ec0a"
+    },
+    {
+      "parameters": {
+        "jsCode": "const query = $input.first().json.query || {};\nconst meetingId = String(query.meetingId || '').trim();\nconst since = Number(query.since || 0);\nconst limit = Math.min(Number(query.limit || 50), 100);\nconst staticData = $getWorkflowStaticData('global');\nconst allEvents = Array.isArray(staticData.flashEvents) ? staticData.flashEvents : [];\nconst events = allEvents.filter(event => (!meetingId || event.meetingId === meetingId) && (!since || event.ts > since)).slice(-limit).map(({ meetingId: _meetingId, ...event }) => event);\nreturn [{ json: { events } }];"
+      },
+      "id": "c2424b89-9918-4a79-b8d4-315082223f66",
+      "name": "Read Events",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        380,
+        1040
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "6c1be070-f23f-4177-8628-e73e482c4b65",
+      "name": "Respond Events",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        600,
+        1040
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "ask",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "4433d79f-ece3-47b5-b4f2-50b0803a7053",
+      "name": "Webhook Ask",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        160,
+        1320
+      ],
+      "webhookId": "12c6228a-41de-4e6c-92b0-ebb5957624d5"
+    },
+    {
+      "parameters": {
+        "jsCode": "const body = $input.first().json.body || {};\nconst meetingId = String(body.meetingId || '').trim();\nconst question = String(body.question || '').trim();\nif (!meetingId || !question) throw new Error('POST /ask requires { meetingId, question }.');\nreturn [{ json: { meetingId, question } }];"
+      },
+      "id": "4ebae170-5ba9-4566-8013-f510fd69395d",
+      "name": "Build Ask Request",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        380,
+        1320
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{ ($env.CONTEXT_SERVICE_URL || 'http://localhost:3000') + '/retrieve' }}",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "meetingId",
+              "value": "={{ $json.meetingId }}"
+            },
+            {
+              "name": "query",
+              "value": "={{ $json.question }}"
+            },
+            {
+              "name": "k",
+              "value": "10"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 10000
+        }
+      },
+      "id": "81abada5-bc20-4d85-9ea6-302479b638a0",
+      "name": "Ask Retrieve Context",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        600,
+        1320
+      ],
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const request = $('Build Ask Request').first().json;\nconst chunks = Array.isArray($input.first().json.chunks) ? $input.first().json.chunks : [];\nconst contextText = chunks.map((chunk, index) => `[${chunk.source || chunk.type || 'context'}] ${chunk.speaker || chunk.title || `source ${index + 1}`}: ${chunk.text || chunk.content || ''}`).join('\\n');\nconst sources = chunks.map((chunk, index) => `${chunk.source || chunk.type || 'context'}: ${chunk.speaker || chunk.title || `source ${index + 1}`}`);\nconst prompt = `Meeting context:\\n${contextText || '(no retrieved context)'}\\n\\nQuestion: ${request.question}\\n\\nReturn ONLY JSON: { \"answer\": \"grounded answer\", \"sources\": [\"source labels used\"] }. If context is insufficient, say so clearly and do not invent facts.`;\nreturn [{ json: { ...request, contextText, sources, prompt } }];"
+      },
+      "id": "eaacafe8-bd86-4432-b543-ef76deafaa3a",
+      "name": "Prepare Ask Context",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        820,
+        1224
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const request = $('Build Ask Request').first().json;\nconst prompt = `Meeting context:\\n(no retrieved context)\\n\\nQuestion: ${request.question}\\n\\nReturn ONLY JSON: { \"answer\": \"I do not have enough retrieved meeting context to answer that yet.\", \"sources\": [] }.`;\nreturn [{ json: { ...request, contextText: '', sources: [], prompt } }];"
+      },
+      "id": "e6982cb7-8e7c-4cf3-a887-d9c867a899da",
+      "name": "Ask Retrieval Fallback",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        820,
+        1416
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ 'https://generativelanguage.googleapis.com/v1beta/models/' + ($env.GEMINI_MODEL || 'gemini-3.5-flash') + ':generateContent' }}",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "key",
+              "value": "={{ $env.GEMINI_API_KEY }}"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ contents: [{ parts: [{ text: $json.prompt }] }], generationConfig: { responseMimeType: 'application/json' } }) }}",
+        "options": {
+          "timeout": 20000
+        }
+      },
+      "id": "2cd08727-b1b3-43b5-9e97-5d5f132d1b72",
+      "name": "Gemini Ask",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1040,
+        1320
+      ],
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "function extractGeminiText(payload) {\n  if (!payload) return '';\n  if (typeof payload === 'string') return payload;\n  if (payload.output) return typeof payload.output === 'string' ? payload.output : JSON.stringify(payload.output);\n  if (payload.text) return payload.text;\n  const parts = payload.candidates?.[0]?.content?.parts || [];\n  return parts.map(part => part.text || '').join('\\n').trim();\n}\n\nfunction parseModelJson(text, fallback) {\n  const cleaned = String(text || '')\n    .replace(/^```(?:json|mermaid)?\\s*/i, '')\n    .replace(/```$/i, '')\n    .trim();\n  if (!cleaned) return fallback;\n  try {\n    return JSON.parse(cleaned);\n  } catch (error) {\n    const start = cleaned.indexOf('{');\n    const end = cleaned.lastIndexOf('}');\n    if (start >= 0 && end > start) {\n      try { return JSON.parse(cleaned.slice(start, end + 1)); } catch (_) {}\n    }\n    return { ...fallback, text: cleaned };\n  }\n}\nlet sourceItem;\ntry { sourceItem = $('Prepare Ask Context').first().json; } catch (error) { sourceItem = $('Ask Retrieval Fallback').first().json; }\nconst parsed = parseModelJson(extractGeminiText($input.first().json), { answer: 'I do not have enough retrieved meeting context to answer that yet.', sources: [] });\nreturn [{ json: { answer: parsed.answer || parsed.text || 'I do not have enough retrieved meeting context to answer that yet.', sources: Array.isArray(parsed.sources) && parsed.sources.length ? parsed.sources : sourceItem.sources } }];"
+      },
+      "id": "27bb35c1-3eca-46bf-96d5-55a7bf6eac79",
+      "name": "Parse Ask",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1260,
+        1320
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{ json: { answer: 'I had trouble answering that follow-up. Try again in a moment.', sources: [] } }];"
+      },
+      "id": "18652f7b-8d7a-4242-9028-1840b8d9f418",
+      "name": "Ask Error Handler",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1260,
+        1480
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "bb61496f-8711-4238-8d96-36d346ab3ff9",
+      "name": "Respond Ask",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        1480,
+        1320
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "finalize",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "587c69a9-6e71-47f7-abd7-3d3863fa7131",
+      "name": "Webhook Finalize",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        160,
+        1800
+      ],
+      "webhookId": "2d168eef-62fe-4485-a040-4fdb863eca52"
+    },
+    {
+      "parameters": {
+        "jsCode": "const body = $input.first().json.body || {}; const meetingId = String(body.meetingId || '').trim(); if (!meetingId) throw new Error('POST /finalize requires { meetingId }.'); return [{ json: { meetingId } }];"
+      },
+      "id": "b1f35ce0-ae12-4c10-aa17-1e77a415a4f6",
+      "name": "Build Finalize Request",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        380,
+        1800
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{ ($env.CONTEXT_SERVICE_URL || 'http://localhost:3000') + '/transcript' }}",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "meetingId",
+              "value": "={{ $json.meetingId }}"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 10000
+        }
+      },
+      "id": "85f917e4-58ed-40ad-94b8-6325bac3f206",
+      "name": "Get Transcript",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        600,
+        1800
+      ],
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const request = $('Build Finalize Request').first().json;\nconst utterances = Array.isArray($input.first().json.utterances) ? $input.first().json.utterances : [];\nconst transcriptText = utterances.map((u, index) => `${u.speaker || `speaker ${index + 1}`}: ${u.text || ''}`).join('\\n');\nconst prompt = `Full meeting transcript:\\n${transcriptText || '(empty transcript)'}\\n\\nReturn ONLY valid JSON with this shape:\\n{\\n  \"summary\": \"short executive summary\",\\n  \"decisions\": [\"decision\"],\\n  \"actionItems\": [\"owner/action/date if known\"],\\n  \"diagrams\": [\"valid Mermaid flowchart TD code\"]\\n}\\n\\nRules:\\n- Use only the transcript.\\n- Leave arrays empty when there is no grounded item.\\n- Mermaid diagrams must not be wrapped in backticks.`;\nreturn [{ json: { meetingId: request.meetingId, utterances, transcriptText, prompt } }];"
+      },
+      "id": "d8a5acbf-fa86-4c6a-84bc-2c90a6b1d1aa",
+      "name": "Prepare Transcript",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        820,
+        1704
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const request = $('Build Finalize Request').first().json; const prompt = 'Full meeting transcript:\\n(empty transcript)\\n\\nReturn ONLY JSON: { \"summary\": \"No transcript was available to finalize.\", \"decisions\": [], \"actionItems\": [], \"diagrams\": [] }.'; return [{ json: { meetingId: request.meetingId, utterances: [], transcriptText: '', prompt } }];"
+      },
+      "id": "1b546e63-1d5e-4df6-9af2-c7527e645ee6",
+      "name": "Transcript Fallback",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        820,
+        1896
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ 'https://generativelanguage.googleapis.com/v1beta/models/' + ($env.GEMINI_MODEL || 'gemini-3.5-flash') + ':generateContent' }}",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "key",
+              "value": "={{ $env.GEMINI_API_KEY }}"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ contents: [{ parts: [{ text: $json.prompt }] }], generationConfig: { responseMimeType: 'application/json' } }) }}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "c74bd580-b9f3-408b-bdc4-75181c16ea3b",
+      "name": "Gemini Finalize",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1040,
+        1800
+      ],
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "function extractGeminiText(payload) {\n  if (!payload) return '';\n  if (typeof payload === 'string') return payload;\n  if (payload.output) return typeof payload.output === 'string' ? payload.output : JSON.stringify(payload.output);\n  if (payload.text) return payload.text;\n  const parts = payload.candidates?.[0]?.content?.parts || [];\n  return parts.map(part => part.text || '').join('\\n').trim();\n}\n\nfunction parseModelJson(text, fallback) {\n  const cleaned = String(text || '')\n    .replace(/^```(?:json|mermaid)?\\s*/i, '')\n    .replace(/```$/i, '')\n    .trim();\n  if (!cleaned) return fallback;\n  try {\n    return JSON.parse(cleaned);\n  } catch (error) {\n    const start = cleaned.indexOf('{');\n    const end = cleaned.lastIndexOf('}');\n    if (start >= 0 && end > start) {\n      try { return JSON.parse(cleaned.slice(start, end + 1)); } catch (_) {}\n    }\n    return { ...fallback, text: cleaned };\n  }\n}\nlet sourceItem;\ntry { sourceItem = $('Prepare Transcript').first().json; } catch (error) { sourceItem = $('Transcript Fallback').first().json; }\nconst parsed = parseModelJson(extractGeminiText($input.first().json), { summary: 'No transcript was available to finalize.', decisions: [], actionItems: [], diagrams: [] });\nconst cleanDiagrams = Array.isArray(parsed.diagrams) ? parsed.diagrams.map(code => String(code || '').replace(/^```(?:mermaid)?\\s*/i, '').replace(/```$/i, '').trim()).filter(Boolean) : [];\nreturn [{ json: { meetingId: sourceItem.meetingId, summary: parsed.summary || 'No summary was generated.', decisions: Array.isArray(parsed.decisions) ? parsed.decisions : [], actionItems: Array.isArray(parsed.actionItems) ? parsed.actionItems : [], diagrams: cleanDiagrams } }];"
+      },
+      "id": "1918c705-93ee-4268-9c44-c59c3ca25b9c",
+      "name": "Parse Finalize",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1260,
+        1800
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const request = $('Build Finalize Request').first().json; return [{ json: { meetingId: request.meetingId, summary: 'I had trouble finalizing this meeting. Try again when the transcript service is available.', decisions: [], actionItems: [], diagrams: [] } }];"
+      },
+      "id": "cfe6fe92-7550-4e74-9a22-5d1c572be831",
+      "name": "Finalize Error Handler",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1260,
+        2000
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $env.AIKIDO_WEBHOOK_URL || \"\" }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEquals"
+              },
+              "id": "1ce2aef7-fa3c-4590-988e-8a65fed1e24e"
+            }
+          ],
+          "combinator": "or"
+        },
+        "options": {}
+      },
+      "id": "92957b17-54d5-4ce7-b7b1-b7c585596037",
+      "name": "Has Aikido Webhook",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1480,
+        1800
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.AIKIDO_WEBHOOK_URL }}",
+        "sendQuery": false,
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ meetingId: $json.meetingId, summary: $json.summary, decisions: $json.decisions, actionItems: $json.actionItems, diagrams: $json.diagrams }) }}",
+        "options": {
+          "timeout": 10000
+        }
+      },
+      "id": "da4d6b9d-af69-47d9-af4f-44dd859b9e89",
+      "name": "Trigger Aikido",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1700,
+        1704
+      ],
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "let item; try { item = $('Parse Finalize').first().json; } catch (error) { item = $('Finalize Error Handler').first().json; } return [{ json: { summary: item.summary, decisions: item.decisions || [], actionItems: item.actionItems || [], diagrams: item.diagrams || [] } }];"
+      },
+      "id": "a44be666-4ea4-40bd-bfd8-e2ee39846d2d",
+      "name": "Prepare Finalize Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1920,
+        1800
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "c39a0854-6bc3-4643-b669-39066adf1cd0",
+      "name": "Respond Finalize",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        2140,
+        1800
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "vision",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "0451d640-be19-403d-9985-d0a252241630",
+      "name": "Webhook Vision",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        160,
+        2360
+      ],
+      "webhookId": "1d06abed-c72e-44b2-9e7a-c0546163b854"
+    },
+    {
+      "parameters": {
+        "jsCode": "const body = $input.first().json.body || {};\nconst meetingId = String(body.meetingId || '').trim();\nconst imageBase64 = String(body.imageBase64 || '').trim();\nif (!meetingId || !imageBase64) throw new Error('POST /vision requires { meetingId, imageBase64 }.');\nconst prompt = 'Describe this meeting screen-share frame for later semantic retrieval. Extract visible tables, numbers, decisions, TODOs, labels, and relationships. Return ONLY JSON: { \"description\": \"searchable concise description\", \"data\": {} }.';\nreturn [{ json: { meetingId, imageBase64, ts: body.ts || Date.now(), sharedBy: body.sharedBy || null, prompt } }];"
+      },
+      "id": "cd4c082f-530b-4bd4-97f2-c4f28f4cffe2",
+      "name": "Build Vision Request",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        380,
+        2360
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ 'https://generativelanguage.googleapis.com/v1beta/models/' + ($env.GEMINI_VISION_MODEL || $env.GEMINI_MODEL || 'gemini-3.5-flash') + ':generateContent' }}",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "key",
+              "value": "={{ $env.GEMINI_API_KEY }}"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ contents: [{ parts: [{ text: $json.prompt }, { inline_data: { mime_type: 'image/jpeg', data: $json.imageBase64 } }] }], generationConfig: { responseMimeType: 'application/json' } }) }}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "77fade7e-5ed4-4554-ae6d-bb621e6f9a95",
+      "name": "Gemini Vision",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        600,
+        2360
+      ],
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "function extractGeminiText(payload) {\n  if (!payload) return '';\n  if (typeof payload === 'string') return payload;\n  if (payload.output) return typeof payload.output === 'string' ? payload.output : JSON.stringify(payload.output);\n  if (payload.text) return payload.text;\n  const parts = payload.candidates?.[0]?.content?.parts || [];\n  return parts.map(part => part.text || '').join('\\n').trim();\n}\n\nfunction parseModelJson(text, fallback) {\n  const cleaned = String(text || '')\n    .replace(/^```(?:json|mermaid)?\\s*/i, '')\n    .replace(/```$/i, '')\n    .trim();\n  if (!cleaned) return fallback;\n  try {\n    return JSON.parse(cleaned);\n  } catch (error) {\n    const start = cleaned.indexOf('{');\n    const end = cleaned.lastIndexOf('}');\n    if (start >= 0 && end > start) {\n      try { return JSON.parse(cleaned.slice(start, end + 1)); } catch (_) {}\n    }\n    return { ...fallback, text: cleaned };\n  }\n}\nconst parsed = parseModelJson(extractGeminiText($input.first().json), { description: 'Screen-share frame received, but no description was generated.', data: {} }); return [{ json: { description: parsed.description || parsed.text || 'Screen-share frame received, but no description was generated.', data: parsed.data && typeof parsed.data === 'object' ? parsed.data : {} } }];"
+      },
+      "id": "3328dbf1-a5a6-4e82-bffb-77c466de21b4",
+      "name": "Parse Vision",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        820,
+        2360
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{ json: { description: 'I could not describe this screen-share frame.', data: {} } }];"
+      },
+      "id": "d3d2ee1f-b9a9-4d5b-98d8-cf4eb56e5e71",
+      "name": "Vision Error Handler",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        820,
+        2520
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "227cac59-c3e9-461c-baf3-39cc5398cf4c",
+      "name": "Respond Vision",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        1040,
+        2360
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook Agent": {
+      "main": [
+        [
+          {
+            "node": "Build Agent Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Agent Request": {
+      "main": [
+        [
+          {
+            "node": "Retrieve Context",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Retrieve Context": {
+      "main": [
+        [
+          {
+            "node": "Prepare Context",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Context Retrieval Fallback",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Context": {
+      "main": [
+        [
+          {
+            "node": "Classify Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Context Retrieval Fallback": {
+      "main": [
+        [
+          {
+            "node": "Classify Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Classify Request": {
+      "main": [
+        [
+          {
+            "node": "Build Diagram Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Build Answer Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Diagram Prompt": {
+      "main": [
+        [
+          {
+            "node": "Gemini Diagram",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gemini Diagram": {
+      "main": [
+        [
+          {
+            "node": "Parse Diagram",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Diagram Error Handler",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Diagram": {
+      "main": [
+        [
+          {
+            "node": "Validate Mermaid",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Mermaid": {
+      "main": [
+        [
+          {
+            "node": "Store Agent Event",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Diagram Error Handler": {
+      "main": [
+        [
+          {
+            "node": "Store Agent Event",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Answer Prompt": {
+      "main": [
+        [
+          {
+            "node": "Gemini Answer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gemini Answer": {
+      "main": [
+        [
+          {
+            "node": "Parse Answer",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Answer Error Handler",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Answer": {
+      "main": [
+        [
+          {
+            "node": "Store Agent Event",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Answer Error Handler": {
+      "main": [
+        [
+          {
+            "node": "Store Agent Event",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Store Agent Event": {
+      "main": [
+        [
+          {
+            "node": "Respond Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook Events": {
+      "main": [
+        [
+          {
+            "node": "Read Events",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Events": {
+      "main": [
+        [
+          {
+            "node": "Respond Events",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook Ask": {
+      "main": [
+        [
+          {
+            "node": "Build Ask Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Ask Request": {
+      "main": [
+        [
+          {
+            "node": "Ask Retrieve Context",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ask Retrieve Context": {
+      "main": [
+        [
+          {
+            "node": "Prepare Ask Context",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Ask Retrieval Fallback",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Ask Context": {
+      "main": [
+        [
+          {
+            "node": "Gemini Ask",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ask Retrieval Fallback": {
+      "main": [
+        [
+          {
+            "node": "Gemini Ask",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gemini Ask": {
+      "main": [
+        [
+          {
+            "node": "Parse Ask",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Ask Error Handler",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Ask": {
+      "main": [
+        [
+          {
+            "node": "Respond Ask",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ask Error Handler": {
+      "main": [
+        [
+          {
+            "node": "Respond Ask",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook Finalize": {
+      "main": [
+        [
+          {
+            "node": "Build Finalize Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Finalize Request": {
+      "main": [
+        [
+          {
+            "node": "Get Transcript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Transcript": {
+      "main": [
+        [
+          {
+            "node": "Prepare Transcript",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Transcript Fallback",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Transcript": {
+      "main": [
+        [
+          {
+            "node": "Gemini Finalize",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Transcript Fallback": {
+      "main": [
+        [
+          {
+            "node": "Gemini Finalize",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gemini Finalize": {
+      "main": [
+        [
+          {
+            "node": "Parse Finalize",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Finalize Error Handler",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Finalize": {
+      "main": [
+        [
+          {
+            "node": "Has Aikido Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Finalize Error Handler": {
+      "main": [
+        [
+          {
+            "node": "Prepare Finalize Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has Aikido Webhook": {
+      "main": [
+        [
+          {
+            "node": "Trigger Aikido",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Prepare Finalize Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Trigger Aikido": {
+      "main": [
+        [
+          {
+            "node": "Prepare Finalize Response",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Prepare Finalize Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Finalize Response": {
+      "main": [
+        [
+          {
+            "node": "Respond Finalize",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook Vision": {
+      "main": [
+        [
+          {
+            "node": "Build Vision Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Vision Request": {
+      "main": [
+        [
+          {
+            "node": "Gemini Vision",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gemini Vision": {
+      "main": [
+        [
+          {
+            "node": "Parse Vision",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Vision Error Handler",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Vision": {
+      "main": [
+        [
+          {
+            "node": "Respond Vision",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Vision Error Handler": {
+      "main": [
+        [
+          {
+            "node": "Respond Vision",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "053aa10f-74e3-4fd6-860d-73d6bbf9c28f",
+  "id": "flash-agent-p3",
+  "meta": {
+    "description": "P3 Brain n8n workflow: /agent, /events, /ask, /finalize, and /vision for Flash."
+  },
+  "nodeGroups": [],
+  "tags": []
+}
