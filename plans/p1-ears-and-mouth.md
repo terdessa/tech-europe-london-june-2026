@@ -3,6 +3,26 @@
 > Read [`CLAUDE.md`](../CLAUDE.md) + [`ARCHITECTURE.md`](../ARCHITECTURE.md) first.
 > **Your partner:** **SLNG** (qualifying #4 + LEGO side challenge — Flash's voice). The meeting platform is **Google Meet** (infra).
 
+## ✅ Status — what's actually built (P1 merged to `main`)
+
+Voice-only Flash is **working end-to-end** and merged. Chosen join path: **Approach C — Playwright headless-ish Chromium**, but with **real audio** (not captions).
+
+| Capability | How it's implemented | File |
+|---|---|---|
+| **Join** as a separate guest named "Flash" | Ephemeral Chromium context, auto-fills name + clicks **Ask to join** (host admits). Auto-joins on startup when `MEET_URL` set; or `POST /join`. | `agent/src/meetBot.ts` |
+| **Ears (real voice STT)** | Monkeypatch `RTCPeerConnection` → mix inbound audio → `MediaRecorder` 4s WebM windows → **SLNG STT (`nova:3-en`)**. Captions dropped entirely. | `meetBot.ts`, `sttClient.ts` |
+| **Passive capture** | Every transcript line appended to `data/context/<meetingId>.jsonl` (+ POST to P2 if `CONTEXT_SERVICE_URL` set). | `contextClient.ts` |
+| **Wake-word** | Punctuation-normalized match of `hey flash` (handles `"Hey, Flash."`). | `pipeline.ts` |
+| **Mouth (TTS into the call)** | **SLNG TTS** (`aura-2-arcas-en`, male) → patched `getUserMedia` injects it as Flash's mic so everyone hears it (also plays on host speaker + posts to chat). | `speaker.ts` (`synthesizeSlng`), `meetBot.ts` (`speakInMeeting`/`ensureUnmuted`), `index.ts` |
+| **Echo guard** | Flash goes "deaf" while speaking + 1.2s cooldown so it doesn't transcribe/re-trigger on itself. | `index.ts` |
+| **Brain / vision** | Graceful **stubs** until P3 (`triggerAgent`, `describeScreen`). | `brainClient.ts`, `visionClient.ts` |
+
+**Deferred for now (by request):** eyes/screen-share (`SCREEN_CAPTURE=off`), speaker diarization (all lines tagged `Participant`), the LiveKit-room fallback. The Gemini vision path exists and re-enables with `SCREEN_CAPTURE=on`.
+
+**Run it:** set `MEET_URL` in `.env` → `cd agent && npm run dev` → admit "Flash" → talk; say "Hey Flash, …" for a spoken reply. STT=`nova:3-en`, TTS=`aura-2-arcas-en` (SLNG offers Aura-2/Rime/Cartesia/Murf/Sarvam for TTS, Nova-3/Soniox for STT).
+
+> The sections below are the **original design/plan** (kept for context and the still-open items: screen, diarization, fallback room, P2/P3 wiring).
+
 ## Your mission
 
 You are Flash's **ears, eyes, and mouth.** A user pastes a **Google Meet link**; your bot **joins that Meet**, hears everyone (speaker-attributed transcript), **watches shared screens** (captures frames → Gemini vision → context), detects **"Hey Flash,"** and **speaks Flash's answers back into the call**. You never interrupt unless called.
