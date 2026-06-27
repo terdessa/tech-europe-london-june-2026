@@ -193,6 +193,21 @@ export const listMeetings = (): MeetingSummaryRow[] => {
   return rows.map(asMeetingSummary);
 };
 
+// Wipe everything stored for one meeting (utterances, sources, chunks and the
+// Superlinked index rows) so the meetingId can be reused from scratch.
+export const deleteMeeting = (meetingId: string): { deleted: number } => {
+  const db = getDb();
+  const before = (
+    db.prepare("SELECT COUNT(*) AS n FROM utterances WHERE meetingId = ?").get(meetingId) as {
+      n: number;
+    }
+  ).n;
+  for (const table of ["superlinked_index", "chunks", "utterances", "sources"]) {
+    db.prepare(`DELETE FROM ${table} WHERE meetingId = ?`).run(meetingId);
+  }
+  return { deleted: Number(before) };
+};
+
 // ---------- Sources ---------------------------------------------------------
 
 export const insertSource = (s: SourceRow): void => {

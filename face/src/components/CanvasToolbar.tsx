@@ -46,6 +46,7 @@ export default function CanvasToolbar({
 }: Props) {
   const [prompt, setPrompt] = useState("");
   const [endState, setEndState] = useState<EndState>("idle");
+  const [clearing, setClearing] = useState(false);
 
   // The toolbar lives under /m/[meetingId]; read the id from the route rather
   // than threading a new prop through FlashCanvas.
@@ -81,6 +82,24 @@ export default function CanvasToolbar({
       setEndState("ended");
     } catch {
       setEndState("error");
+    }
+  }
+
+  // Clear canvas: wipe the whole graph (memory + disk) and P2's stored context
+  // so this meeting id starts from scratch. Guarded by a confirm.
+  async function clearCanvas() {
+    if (!meetingId || clearing) return;
+    if (!window.confirm("Clear this canvas? This deletes every node, edge and stored meeting context. This cannot be undone.")) {
+      return;
+    }
+    setClearing(true);
+    try {
+      await fetch(`/api/canvas/${encodeURIComponent(meetingId)}/reset`, { method: "POST" });
+      setEndState("idle"); // a cleared canvas is a fresh meeting again
+    } catch {
+      /* the 1s poll will reflect whatever state the server is in */
+    } finally {
+      setClearing(false);
     }
   }
 
@@ -161,6 +180,15 @@ export default function CanvasToolbar({
           </button>
           <button type="button" className="btn" onClick={onExport}>
             Export JSON
+          </button>
+          <button
+            type="button"
+            className="btn btn-danger"
+            onClick={clearCanvas}
+            disabled={clearing || !meetingId}
+            title="Delete all nodes, edges and stored context for this meeting"
+          >
+            {clearing ? "Clearing…" : "Clear canvas"}
           </button>
           <button
             type="button"
