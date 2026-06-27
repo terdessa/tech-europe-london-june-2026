@@ -1,0 +1,19 @@
+{
+  "meetingId": "m_sample",
+  "events": [
+    {
+      "kind": "agent_response",
+      "type": "diagram",
+      "text": "Here's the Q3 budget breakdown.",
+      "diagramCode": "flowchart TD\n  Budget[\"Q3 Budget: 5000\"] --> Design[\"Design: 500\"]\n  Budget --> Ads[\"Ads: 1000\"]\n  Budget --> Left[\"Remaining: 3500\"]",
+      "ts": 1719500070
+    },
+    {
+      "kind": "agent_response",
+      "type": "answer",
+      "text": "To save 1000, you could cut the ads spend in half and pause one design contractor; that keeps the remaining runway at 3500 while freeing 1000.",
+      "sources": ["live: Alice 12:00", "live: Bob 12:00", "doc: Q3 plan"],
+      "ts": 1719500080
+    }
+  ]
+}
