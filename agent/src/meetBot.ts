@@ -101,6 +101,7 @@ export class MeetBot {
           const line = blocks[i];
           if (line.length < 2 || seen.has(line)) continue;
           seen.add(line);
+          if (seen.size > 1000) seen.clear(); // cap memory over a long meeting
           onLine({ speaker: "Participant", text: line });
         }
       } catch {

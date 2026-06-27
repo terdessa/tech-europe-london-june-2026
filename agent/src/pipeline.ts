@@ -15,7 +15,9 @@ export interface PipelineOptions {
   describeScreen?: (requestText: string) => Promise<string | null>;
 }
 
-const SCREEN_HINT = /screen|slide|diagram|chart|table|show(ing)?|display/i;
+// Only route to screen-describe for explicit screen references — not "diagram"/"show",
+// which are brain requests.
+const SCREEN_HINT = /\b(screen|slide|sharing|shared|what'?s on)\b/i;
 
 /** Builds the per-utterance handler: capture context, detect wake, respond. */
 export function createPipeline({ responder, describeScreen }: PipelineOptions) {

@@ -76,9 +76,11 @@ async function startRealMeet(meetingId: string, meetUrl: string): Promise<void> 
     : undefined;
 
   const handle = createPipeline({ responder, describeScreen });
-  activeBot.startCaptions((line) =>
-    void handle({ meetingId, speaker: line.speaker, ts: nowSec(), text: line.text } as Utterance),
-  );
+  activeBot.startCaptions((line) => {
+    handle({ meetingId, speaker: line.speaker, ts: nowSec(), text: line.text } as Utterance).catch((e) =>
+      console.error("[pipeline] error:", (e as Error).message),
+    );
+  });
 }
 
 app.listen(CONFIG.port, () => {

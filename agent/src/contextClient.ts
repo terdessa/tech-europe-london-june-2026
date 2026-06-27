@@ -23,7 +23,11 @@ export async function ingest(u: Utterance): Promise<void> {
 }
 
 function appendToContextFile(u: Utterance): void {
-  const dir = path.resolve(__dirname, "../../data/context");
-  fs.mkdirSync(dir, { recursive: true });
-  fs.appendFileSync(path.join(dir, `${u.meetingId}.jsonl`), JSON.stringify(u) + "\n");
+  try {
+    const dir = path.resolve(__dirname, "../../data/context");
+    fs.mkdirSync(dir, { recursive: true });
+    fs.appendFileSync(path.join(dir, `${u.meetingId}.jsonl`), JSON.stringify(u) + "\n");
+  } catch (err) {
+    console.warn("[context] could not write context file:", (err as Error).message);
+  }
 }
