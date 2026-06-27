@@ -25,6 +25,10 @@ data/context/
 # tts audio output
 data/tts/
 
+# google meet bot profile (holds your Google session — never commit)
+.meet-profile/
+agent/.meet-profile/
+
 # os/editor
 .DS_Store
 .idea/
