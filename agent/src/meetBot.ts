@@ -1,5 +1,21 @@
 import { chromium, type Browser, type BrowserContext, type Locator, type Page } from "playwright";
+import fs from "node:fs";
+import path from "node:path";
 import { CONFIG } from "./config";
+
+// Chromium leaves Singleton* lock files in a profile dir; if a prior run didn't
+// shut down cleanly (or `meet:login` left them), launchPersistentContext fails
+// with "Opening in existing browser session". These are safe to remove when no
+// Chromium is actually using the profile.
+function clearProfileLocks(dir: string): void {
+  for (const name of ["SingletonLock", "SingletonSocket", "SingletonCookie"]) {
+    try {
+      fs.rmSync(path.join(dir, name), { force: true });
+    } catch {
+      /* ignore */
+    }
+  }
+}
 
 // Injected into the meeting page BEFORE Meet's scripts run.
 // Taps every inbound WebRTC audio track, mixes them, and records 4s WebM windows,
@@ -121,7 +137,9 @@ export class MeetBot {
     };
 
     if (CONFIG.userDataDir && CONFIG.userDataDir.trim()) {
-      // Persistent profile (use a DEDICATED Flash Google account here, not your own).
+      // Persistent profile (signed-in Flash account). Clear stale locks so a prior
+      // unclean exit / meet:login doesn't block us with "profile already in use".
+      clearProfileLocks(CONFIG.userDataDir);
       this.ctx = await chromium.launchPersistentContext(CONFIG.userDataDir, { headless: false, args, ...ctxOpts });
       this.page = this.ctx.pages()[0] ?? (await this.ctx.newPage());
     } else {
