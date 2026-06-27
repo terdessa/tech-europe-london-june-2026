@@ -32,7 +32,7 @@ Project guidance for Claude Code. Read this first each session.
 
 ## Stack
 
-- **Agent runtime:** LiveKit (agent joins the room). Node or Python per P1's choice.
+- **Agent runtime:** **Google Meet bot** — joins via a pasted Meet link (managed bot API / Meet Media API / headless; see P1), with a **LiveKit-room fallback** for the demo.
 - **Voice:** SLNG — speech-to-text + text-to-speech.
 - **Retrieval:** Superlinked — an inference engine (embeddings, semantic search, reranking, doc parsing) over a plain store of the transcript + prep docs. *It's the semantic layer, not the database.*
 - **Brain:** n8n workflows orchestrating Gemini calls (live agent flow + post-meeting pipeline).

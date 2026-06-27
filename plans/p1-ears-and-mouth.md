@@ -1,85 +1,94 @@
-# P1 — Ears & Mouth (LiveKit + SLNG)
+# P1 — Ears & Mouth (Google Meet bot + SLNG)
 
 > Read [`CLAUDE.md`](../CLAUDE.md) + [`ARCHITECTURE.md`](../ARCHITECTURE.md) first.
-> **Your partner:** **SLNG** (qualifying #4 + LEGO side challenge). LiveKit is infra.
+> **Your partner:** **SLNG** (qualifying #4 + LEGO side challenge — Rahid's voice). The meeting platform is **Google Meet** (infra).
 
 ## Your mission
 
-You are Rahid's **ears and mouth.** You join the meeting, hear everything, turn it into text for the Memory service, detect when someone says **"Hey Rahid,"** and **speak the Brain's answers back into the call.** You never interrupt unless called.
+You are Rahid's **ears and mouth.** A user pastes a **Google Meet link**; your bot **joins that Meet**, hears everyone, turns speech into a speaker-attributed transcript, detects **"Hey Rahid,"** and **speaks Rahid's answers back into the call** (+ posts the diagram link in the Meet chat). You never interrupt unless called.
 
-You own the riskiest piece (live audio), so you build it in layers and always keep a fallback that doesn't need a real Google Meet.
+This is the **highest-risk track** — putting a bot into a real Meet and having it talk back is hard. So you build in layers and **always keep a fallback that doesn't depend on Meet.**
+
+## ⚠️ Decide the join path in the first hour (do this before coding)
+Three ways to get a bot into Google Meet — pick the fastest one that works for you on the day:
+
+| Approach | What | Notes |
+|---|---|---|
+| **A. Managed bot API** (Recall.ai / MeetingBaaS) | A service joins the Meet, gives you transcript + audio and lets the bot **speak** via API | ⚡ Fastest/most reliable. External (free trial). **Try first.** |
+| **B. Meet Media API** (official Google) | Server-side **per-participant** audio + send media | Needs Google **Workspace + preview access** → **ask the Google/DeepMind people on the floor at the opening** (you have temp accounts — they can unblock you) |
+| **C. Headless browser bot** (Playwright) | Bot joins as guest via link; scrape **Meet live captions** (speaker-labeled) for transcript; speak via a **virtual mic**; post chat link via DOM | DIY backup; fiddly; mixed audio |
+
+**At the opening:** kick off A (sign up) and B (ask Google) in parallel. Commit to one within ~1 hour. C is your DIY backup.
+
+## 🛟 The fallback you must keep alive
+Build a **plain LiveKit room** path too (launcher "Start room" → humans + Rahid join). It demos the **identical product** without Meet. **If the Meet bot isn't solid by ~14:00, the demo runs in our room.** Never bet the 20:00 demo on Meet auth.
+
+## Speaker attribution (who said what)
+- **Approach B (Media API)** → per-participant audio → run **SLNG STT per stream** → speaker = participant identity (cleanest).
+- **Approaches A / C** → take the **speaker-labeled transcript from Meet captions / the bot service**; **SLNG still does Rahid's TTS** (so SLNG stays a real partner). No diarization/voiceprint ML either way.
+- ⚠️ Everyone joins from **their own device** — a single shared mic is the only case that needs diarization; avoid it.
 
 ## What you own
-- The **agent runtime** that joins a LiveKit room as a participant.
-- **SLNG STT:** audio → utterance text (with a speaker label + timestamp).
-- **Wake-word detection:** `hey rahid` (case-insensitive, fuzzy).
-- **SLNG TTS:** speak the Brain's `text` response back into the call.
-- POSTing utterances to P2; POSTing requests to P3; playing responses.
+- The **bot/agent runtime** that joins a Meet by link (and the LiveKit-room fallback).
+- Transcript with speaker labels (per chosen approach) → POST to P2.
+- **Wake-word** detection (`hey rahid`, fuzzy).
+- **SLNG TTS** of Rahid's answers back into the call + posting the diagram link in Meet chat.
 
 ## Contracts you touch (from ARCHITECTURE §3)
+- Serve `POST /join { meetingId, meetUrl }` (§3.8) — launcher tells you to dispatch the bot.
 - **Emit** utterances → `POST {CONTEXT_SERVICE_URL}/ingest` (§3.1).
-- **Send** requests → `POST {N8N_WEBHOOK_BASE}/agent` (§3.5) → speak `response.text` via TTS.
+- **Send** requests → `POST {N8N_WEBHOOK_BASE}/agent` (§3.5) → speak `response.text`; post `response.diagramCode`'s viewer link to chat.
 
 ## Phase 0 — Setup (joint, 30 min)
-1. Help freeze the §3 contracts. Confirm the `/ingest` and `/agent` shapes work for you.
-2. Get LiveKit creds (`LIVEKIT_URL/KEY/SECRET`) and an SLNG key into `.env`.
-3. Pick language: LiveKit **Agents (Python)** is the most documented path; Node SDK also fine. Either works — you only talk HTTP/JSON to the others.
+1. Help freeze §3 (incl. `/join`). Confirm `/ingest` + `/agent` shapes.
+2. Decide the join approach (above). Get the relevant creds/keys + SLNG key into `.env`.
 
-## Phase 1 — Audio in, transcript out (no others needed)
-1. Stand up a LiveKit room; join it from a second browser tab (you = test speaker).
-2. Connect your agent as a participant; **subscribe to each remote participant's audio track _separately_.**
-3. Run **SLNG STT per track**. Produce `{ speaker, ts, text }` where **`speaker` = that track's participant identity/name** (see "Speaker attribution" below).
-4. Print utterances to console. **Don't POST yet** — just prove transcription.
-5. **Reuse first:** start from the LiveKit Agents starter + SLNG STT example; port, don't hand-roll.
+## Phase 1 — Join + transcript out (prove it alone)
+1. Get the bot to **join a Meet by link** (Approach A/B/C) — host admits it. See it appear as a participant.
+2. Produce a **speaker-attributed transcript** (per-stream STT for B; captions for A/C).
+3. Print utterances `{ speaker, ts, text }` to console. **Don't POST yet.**
+4. **Reuse first:** start from the chosen provider's sample/quickstart; port, don't hand-roll.
 
-**Done when:** two people talk from two tabs and you see correctly-attributed lines ("Alice: …", "Bob: …") in your console.
-
-## Speaker attribution (no diarization needed — read this)
-We do **not** do voiceprint/biometric recognition or diarization. Each participant in LiveKit publishes **their own audio track tagged with their identity**, so:
-- one STT stream **per track** → label every utterance with that participant's name.
-- **crosstalk is handled for free** (separate streams), and we get accurate who-said-what.
-- Google Meet's Media API exposes per-participant streams the same way; our own LiveKit room (the fallback) is native.
-- ⚠️ The only setup that would need diarization is **everyone on one shared mic** — so for the demo, **each person joins from their own device/tab.**
+**Done when:** two people talk in a real Meet and you see correctly-attributed lines in your console. *(Mirror this in the LiveKit-room fallback.)*
 
 ## Phase 2 — Wake-word + request capture
-1. On each transcript line, check for the wake phrase (`hey rahid`). Use a fuzzy match (STT will mishear).
-2. After the wake phrase, collect words until ~1.5s of silence → that's `requestText`.
-3. Log `{ mode: 'active', requestText }`.
+1. On each transcript line, fuzzy-match the wake phrase (`hey rahid`).
+2. Collect words after it until ~1.5s silence → `requestText`.
 
-**Done when:** saying "Hey Rahid, make a diagram of the budget" reliably yields the right `requestText`.
+**Done when:** "Hey Rahid, make a diagram of the budget" yields the right `requestText`.
 
-## Phase 3 — Mouth (SLNG TTS)
-1. Take a string → **SLNG TTS** → publish the audio into the LiveKit room as Rahid's track.
-2. Test with a hard-coded sentence ("Hey, can I help?").
+## Phase 3 — Mouth (SLNG TTS into the call)
+1. String → **SLNG TTS** → play into the Meet (Media API send-track / virtual mic / bot-service audio).
+2. Test with a hard-coded "Hey, can I help?".
 
-**Done when:** Rahid speaks into the call and the other participant hears it.
+**Done when:** the other participants **hear** Rahid speak.
 
 ## Phase 4 — Wire to the others
-1. **Passive:** POST every utterance to `{CONTEXT_SERVICE_URL}/ingest` (P2). (Use P2's mock or real service.)
-2. **Active:** on a wake request, POST to `{N8N_WEBHOOK_BASE}/agent` (P3) → take `response.text` → TTS it. (P3 handles the diagram → UI.)
-3. Add a friendly "thinking" cue ("One sec…") so the 1–2s feels natural.
+1. **Passive:** POST every utterance to `/ingest` (P2).
+2. **Active:** on a wake request, POST to `/agent` (P3) → TTS the `text`; **post the diagram link** (workspace `/m/:meetingId`) into Meet chat.
+3. Add a "one sec…" filler so the 1–2s feels natural.
 
-**Done when:** end-to-end — you speak, P2 stores it; you call Rahid, it answers out loud.
+**Done when:** you speak → P2 stores it; you call Rahid → it answers out loud + drops the diagram link.
 
 ## Phase 5 — Hardening for demo
-- Tune wake-word sensitivity (no false triggers during normal talk).
-- Mic/echo test in the actual demo room.
-- Graceful errors: if `/agent` fails, Rahid says "Sorry, I didn't catch that."
-
-## Fallback (keep this alive!)
-If joining **Google Meet** fights you, run the whole thing in a **LiveKit web room** we control (two humans + Rahid). The demo still works; we just don't say "Google Meet." Build against this first, add Meet last.
+- Wake-word sensitivity (no false triggers).
+- Mic/echo test in the actual room.
+- Graceful errors ("Sorry, I didn't catch that").
+- Confirm the fallback room works end-to-end too.
 
 ## Checklist
-- [ ] Agent joins a LiveKit room + hears audio
-- [ ] SLNG STT → accurate utterances
-- [ ] Wake-word + requestText capture
-- [ ] SLNG TTS speaks into the call
-- [ ] POST /ingest (passive) + POST /agent (active) wired
-- [ ] Demo-room mic test + fallback room ready
+- [ ] Join approach chosen in hour 1 (A/B/C) + LiveKit-room fallback building in parallel
+- [ ] Bot joins a real Meet by link
+- [ ] Speaker-attributed transcript
+- [ ] Wake-word + requestText
+- [ ] SLNG TTS into the call + chat link posting
+- [ ] POST /ingest + POST /agent wired
+- [ ] Demo-room mic test; fallback verified
 
 ## Risks you own
 | Risk | Mitigation |
 |---|---|
-| Meet/LiveKit auth | Own LiveKit room fallback; Meet last |
-| STT mishears wake word | Fuzzy match + alternate phrase |
-| Latency feels awkward | "One sec…" filler + keep responses short |
+| Meet bot auth / API access | Try managed API + ask Google on-site; LiveKit-room fallback by 14:00 |
+| Can't get per-participant audio | Use Meet captions for speaker labels; SLNG for TTS |
+| Speaking into Meet is hard | Managed bot API handles audio-out; else virtual mic |
+| Latency feels awkward | "One sec…" filler + short responses |

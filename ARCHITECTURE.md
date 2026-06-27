@@ -8,8 +8,8 @@
 PRE-MEETING
   Host uploads docs/links ──▶ [P2] Superlinked index (grounding sources)
 
-LIVE MEETING  (LiveKit room — "Rahid" joins as a silent participant)
-  Everyone's audio ──LiveKit──▶ [P1] Agent runtime
+LIVE MEETING  (Google Meet — Rahid bot joins via the pasted link; LiveKit-room fallback)
+  Everyone's audio ──Meet bot──▶ [P1] Agent runtime
      │
      │ ── PASSIVE (always on, never interrupts) ──
      │      SLNG STT ──▶ utterance {speaker, ts, text}
@@ -34,7 +34,7 @@ POST-MEETING  (meeting ends)
 
 | ID | Component | Owner | Responsibility |
 |---|---|---|---|
-| P1 | **Agent runtime** | Ears & Mouth | Join LiveKit room, capture audio, SLNG STT→utterances, wake-word, SLNG TTS of responses back into the call |
+| P1 | **Agent runtime** | Ears & Mouth | Join the **Google Meet by link** (managed bot API / Meet Media API / headless; LiveKit-room fallback), capture speaker-attributed transcript, wake-word, **SLNG TTS** of responses back into the call + post diagram link in Meet chat |
 | P2 | **Retrieval & Context service** | Retrieval | A **persistent store (SQLite)** of raw utterances/sources = the full conversation record, **+ Superlinked as the semantic layer** (embeddings, semantic search, reranking, doc parsing/OCR). HTTP API: ingest, retrieve, dump transcript. *Superlinked is the inference engine, not the database.* |
 | P3 | **Brain (n8n + Gemini)** | Brain | n8n webhooks for the live agent flow + post-meeting pipeline; Gemini reasoning + diagram-code generation; events feed for the UI |
 | P4 | **Web app** | Face | Pre-meeting upload, live pop-up card + diagram render (Mermaid), post-meeting Q&A app, Aikido |
@@ -104,6 +104,12 @@ GET {N8N_WEBHOOK_BASE}/events?meetingId=m_123   // poll, or WS if time allows
                 "text": "...", "diagramCode": "...", "ts": 1719500050 } ] }
 ```
 
+### 3.8 Dispatch the bot — P4 (launcher) ▶ P1
+```http
+POST {AGENT_URL}/join   { "meetingId": "m_123", "meetUrl": "https://meet.google.com/abc-defg-hij" }
+// -> { "status": "joining" }
+```
+
 ### 3.7 Post-meeting — P4 ▶ P3
 ```http
 POST {N8N_WEBHOOK_BASE}/finalize   { "meetingId": "m_123" }
@@ -120,7 +126,11 @@ POST {N8N_WEBHOOK_BASE}/ask        { "meetingId": "m_123", "question": "what sho
 
 ## 4b. Speaker attribution & persistence
 
-**Who said what — no diarization/voiceprint ML.** Each participant in LiveKit publishes their **own audio track tagged with their identity**. P1 subscribes **per track**, runs **one SLNG STT stream per track**, and labels each utterance with that participant's name. Crosstalk is handled for free. (Google Meet's Media API exposes per-participant streams the same way; our own LiveKit room is native.) ⚠️ Everyone must join from **their own device/tab** — a single shared mic is the only case that would need diarization, so avoid it.
+**Who said what — no diarization/voiceprint ML.** Depends on the join approach (see `plans/p1`):
+- **Meet Media API / LiveKit room:** per-participant audio tracks → **SLNG STT per stream** → speaker = participant identity (cleanest).
+- **Managed bot API / headless:** take the **speaker-labeled transcript from Meet live captions / the bot service**; **SLNG still does Rahid's TTS** (stays a real partner).
+
+Crosstalk is handled either way. ⚠️ Everyone joins from **their own device** — a single shared mic is the only case that would need diarization, so avoid it.
 
 **Keeping the whole conversation.** P2 appends every utterance to a **persistent SQLite table** (`meetingId, speaker, ts, text`). *That table is the source of truth* for the full transcript and survives restarts. Superlinked indexes the same utterances for semantic search but is **not** the store — never rely on the vector index to hold the raw text.
 
@@ -142,6 +152,9 @@ LIVEKIT_API_KEY=
 LIVEKIT_API_SECRET=
 N8N_WEBHOOK_BASE=
 CONTEXT_SERVICE_URL=
+AGENT_URL=
+# If using a managed Meet bot (Recall.ai / MeetingBaaS):
+MEET_BOT_API_KEY=
 ```
 
 ## 7. Mock strategy (so nobody blocks)

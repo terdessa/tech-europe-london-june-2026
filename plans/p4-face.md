@@ -5,7 +5,12 @@
 
 ## Your mission
 
-You are Rahid's **face.** Three surfaces: (1) a **pre-meeting** page to upload prep docs, (2) a **live** view that pops Rahid's answer/diagram cards as they happen, and (3) a **post-meeting** app where the user asks anything about the meeting. You also render diagrams (and make them editable) and run the Aikido scan.
+You are Rahid's **face.** The meeting itself is where the live action happens (Rahid talks + posts a diagram link in the Meet chat), so your web app is intentionally small — **one React app, three states**:
+1. **Launcher (`/`)** — paste the **Google Meet link** + upload prep docs → "Send Rahid."
+2. **Workspace (`/m/:meetingId`)** — *during:* optional companion that polls `/events` and shows diagrams/answers (also the page the in-chat diagram link opens). *After:* same page flips to summary + Q&A.
+3. (Diagrams render inside the workspace; no separate dashboard.)
+
+You also render diagrams (editable) and run the Aikido scan.
 
 ## What you own
 - React + Vite + TS app.
@@ -32,18 +37,19 @@ You are Rahid's **face.** Three surfaces: (1) a **pre-meeting** page to upload p
 
 **Done when:** the budget diagram renders and updates as you edit the code.
 
-## Phase 2 — Live view (against mock events)
-1. Poll `/events?meetingId=` (use `sample-events.json` first).
-2. Render a feed of **cards**: answers (text + sources) and diagrams (rendered).
-3. Make it look like a clean "copilot panel" — this is on screen during the demo.
+## Phase 2 — Workspace page (against mock events)
+1. Route `/m/:meetingId`. Poll `/events?meetingId=` (use `sample-events.json` first).
+2. Render a feed of **cards**: answers (text + sources) and diagrams (rendered). This is also what the in-Meet-chat link opens.
+3. Keep it clean — it's a light companion during the call, and becomes the workspace after.
 
-**Done when:** mock events show as nice cards/diagrams in real time.
+**Done when:** mock events show as nice cards/diagrams on `/m/:meetingId`.
 
-## Phase 3 — Pre-meeting upload
-1. Form: paste text / add links / (optional) upload a file → `POST /sources` with a `meetingId`.
-2. Show "context loaded: N sources."
+## Phase 3 — Launcher (pre-meeting)
+1. Generate a `meetingId`. Form: **paste the Google Meet link** + paste text / add links / (optional) upload a file → `POST /sources` (§3.2).
+2. **"Send Rahid"** → `POST {AGENT_URL}/join { meetingId, meetUrl }` (§3.8) to dispatch the bot.
+3. Show "context loaded: N sources" + "Rahid is joining…" then link to `/m/:meetingId`.
 
-**Done when:** uploading prep makes Rahid's later answers grounded (verify with P2/P3).
+**Done when:** pasting a Meet link + prep dispatches the bot and grounds Rahid's later answers (verify with P1/P2/P3).
 
 ## Phase 4 — Post-meeting app (the second "use" of the context)
 1. "Meeting ended" → call `/finalize` → show **summary + decisions + action items + diagrams**.
