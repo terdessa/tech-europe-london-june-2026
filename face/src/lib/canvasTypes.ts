@@ -34,6 +34,39 @@ export type CanvasEdgeType =
   | "follows"
   | "derived_from";
 
+// Runtime lists (single source of truth for validation + UI dropdowns).
+export const CANVAS_NODE_TYPES: CanvasNodeType[] = [
+  "speaker",
+  "utterance",
+  "chat_context",
+  "document",
+  "image",
+  "link",
+  "topic",
+  "question",
+  "flash_answer",
+  "diagram",
+  "decision",
+  "action_item",
+  "summary",
+  "source",
+  "memory_chunk",
+];
+
+export const CANVAS_EDGE_TYPES: CanvasEdgeType[] = [
+  "said",
+  "shared",
+  "mentions",
+  "answers",
+  "generated",
+  "cites",
+  "summarizes",
+  "decided_from",
+  "assigned_to",
+  "follows",
+  "derived_from",
+];
+
 export type XYPosition = { x: number; y: number };
 
 // React Flow uses a single custom node renderer keyed by `type: "flash"`.

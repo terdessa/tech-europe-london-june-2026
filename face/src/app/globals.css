@@ -374,3 +374,86 @@ button {
   max-width: 100%;
   height: auto;
 }
+
+/* ---- Edge-type picker in the toolbar ---------------------------------- */
+
+.edge-type-pick {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-soft);
+}
+
+.edge-type-pick .input {
+  padding: 6px 8px;
+  font-size: 12px;
+}
+
+/* ---- Add-node panel --------------------------------------------------- */
+
+.add-panel {
+  position: absolute;
+  top: 96px;
+  left: 14px;
+  z-index: 11;
+  width: 320px;
+  max-height: calc(100vh - 120px);
+  display: flex;
+  flex-direction: column;
+  background: #ffffff;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  box-shadow: var(--shadow-lg);
+  overflow: hidden;
+}
+
+.add-panel-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px;
+  overflow: auto;
+}
+
+.add-field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.add-field > span {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-faint);
+}
+
+.add-field .input,
+.add-field select.input {
+  width: 100%;
+}
+
+.add-textarea {
+  resize: vertical;
+  line-height: 1.4;
+}
+
+.add-mono {
+  font-family: var(--mono);
+  font-size: 12px;
+}
+
+.add-hint {
+  margin: 2px 0 0;
+  font-size: 11px;
+  color: var(--text-faint);
+  line-height: 1.4;
+}
+
+/* The selected-node panel reuses .add-field for its editable inputs. */
+.node-panel-body .add-field {
+  margin-bottom: 12px;
+}

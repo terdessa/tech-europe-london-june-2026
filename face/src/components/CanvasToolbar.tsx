@@ -1,12 +1,17 @@
 "use client";
 
 import { useState } from "react";
+import { CANVAS_EDGE_TYPES, type CanvasEdgeType } from "@/lib/canvasTypes";
 
 type Props = {
   nodeCount: number;
   edgeCount: number;
   lastSync: number | null;
   busy: string | null;
+  addOpen: boolean;
+  edgeType: CanvasEdgeType;
+  onEdgeTypeChange: (t: CanvasEdgeType) => void;
+  onToggleAdd: () => void;
   onAsk: (text: string) => void;
   onSummarize: () => void;
   onDemo: () => void;
@@ -26,6 +31,10 @@ export default function CanvasToolbar({
   edgeCount,
   lastSync,
   busy,
+  addOpen,
+  edgeType,
+  onEdgeTypeChange,
+  onToggleAdd,
   onAsk,
   onSummarize,
   onDemo,
@@ -68,6 +77,27 @@ export default function CanvasToolbar({
         </form>
 
         <div className="toolbar-actions">
+          <button
+            type="button"
+            className={addOpen ? "btn btn-primary" : "btn"}
+            onClick={onToggleAdd}
+          >
+            {addOpen ? "Close add" : "+ Add node"}
+          </button>
+          <label className="edge-type-pick" title="Edge type used when you drag a connection">
+            <span>link as</span>
+            <select
+              className="input"
+              value={edgeType}
+              onChange={(e) => onEdgeTypeChange(e.target.value as CanvasEdgeType)}
+            >
+              {CANVAS_EDGE_TYPES.map((t) => (
+                <option key={t} value={t}>
+                  {t}
+                </option>
+              ))}
+            </select>
+          </label>
           <button type="button" className="btn" onClick={onAutoArrange}>
             Auto-arrange
           </button>

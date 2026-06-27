@@ -10,6 +10,7 @@ import {
   MiniMap,
   applyNodeChanges,
   applyEdgeChanges,
+  addEdge as rfAddEdge,
   useReactFlow,
   MarkerType,
   type Node,
@@ -17,15 +18,23 @@ import {
   type NodeChange,
   type EdgeChange,
   type NodeTypes,
+  type Connection,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 
-import type { Canvas, FlashNode } from "@/lib/canvasTypes";
+import type {
+  AddNodeInput,
+  Canvas,
+  CanvasEdgeType,
+  FlashNode,
+  UpdateNodeInput,
+} from "@/lib/canvasTypes";
 import { getNodeStyle } from "@/lib/nodeStyles";
 import { layoutGraph } from "@/lib/autoLayout";
 import CanvasNode from "./CanvasNode";
 import CanvasToolbar from "./CanvasToolbar";
 import SelectedNodePanel from "./SelectedNodePanel";
+import AddNodePanel from "./AddNodePanel";
 
 const POLL_MS = 1000;
 const nodeTypes: NodeTypes = { flash: CanvasNode };
@@ -67,6 +76,8 @@ function FlashCanvasInner({ meetingId }: { meetingId: string }) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [lastSync, setLastSync] = useState<number | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
+  const [addOpen, setAddOpen] = useState(false);
+  const [newEdgeType, setNewEdgeType] = useState<CanvasEdgeType>("mentions");
 
   const versionRef = useRef<number>(-1);
   const draggingRef = useRef<boolean>(false);
@@ -229,6 +240,65 @@ function FlashCanvasInner({ meetingId }: { meetingId: string }) {
     setNodes(layoutGraph(nodes, edges, "LR"));
   }, [nodes, edges]);
 
+  // ---- manual editing -------------------------------------------------
+  const onAddNode = useCallback(
+    async (input: AddNodeInput) => {
+      try {
+        await fetch(`${apiBase(meetingId)}/nodes`, {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify(input),
+        });
+        await refetch();
+      } catch {
+        // best effort
+      }
+    },
+    [meetingId, refetch]
+  );
+
+  const onSaveNode = useCallback(
+    async (id: string, changes: UpdateNodeInput) => {
+      try {
+        await fetch(`${apiBase(meetingId)}/nodes/${encodeURIComponent(id)}`, {
+          method: "PATCH",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify(changes),
+        });
+        await refetch();
+      } catch {
+        // best effort
+      }
+    },
+    [meetingId, refetch]
+  );
+
+  // Drag from a node's right (source) dot to another node's left (target) dot.
+  const onConnect = useCallback(
+    (conn: Connection) => {
+      if (!conn.source || !conn.target) return;
+      // optimistic local edge so the line shows immediately
+      setEdges((cur) => rfAddEdge({ ...conn, type: "smoothstep" }, cur));
+      (async () => {
+        try {
+          await fetch(`${apiBase(meetingId)}/edges`, {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({
+              source: conn.source,
+              target: conn.target,
+              edgeType: newEdgeType,
+            }),
+          });
+          await refetch();
+        } catch {
+          // best effort; next poll reconciles
+        }
+      })();
+    },
+    [meetingId, newEdgeType, refetch]
+  );
+
   const onExport = useCallback(() => {
     const payload = JSON.stringify({ meetingId, nodes, edges }, null, 2);
     const blob = new Blob([payload], { type: "application/json" });
@@ -276,6 +346,7 @@ function FlashCanvasInner({ meetingId }: { meetingId: string }) {
         nodeTypes={nodeTypes}
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
+        onConnect={onConnect}
         onNodeClick={onNodeClick}
         onPaneClick={() => setSelectedId(null)}
         fitView
@@ -305,6 +376,10 @@ function FlashCanvasInner({ meetingId }: { meetingId: string }) {
         edgeCount={edges.length}
         lastSync={lastSync}
         busy={busy}
+        addOpen={addOpen}
+        edgeType={newEdgeType}
+        onEdgeTypeChange={setNewEdgeType}
+        onToggleAdd={() => setAddOpen((v) => !v)}
         onAsk={onAsk}
         onSummarize={onSummarize}
         onDemo={onDemo}
@@ -312,10 +387,15 @@ function FlashCanvasInner({ meetingId }: { meetingId: string }) {
         onAutoArrange={onAutoArrange}
       />
 
+      {addOpen && (
+        <AddNodePanel onAdd={onAddNode} onClose={() => setAddOpen(false)} />
+      )}
+
       <SelectedNodePanel
         node={selectedNode}
         onClose={() => setSelectedId(null)}
         onDelete={onDelete}
+        onSave={onSaveNode}
       />
     </div>
   );
