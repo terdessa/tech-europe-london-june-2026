@@ -7,7 +7,7 @@
     { "meetingId": "m_sample", "speaker": "Alice", "ts": 1719500022, "text": "And 1000 on ads last week." },
     { "meetingId": "m_sample", "speaker": "Bob", "ts": 1719500030, "text": "So we have 3500 left to allocate." },
     { "meetingId": "m_sample", "speaker": "Alice", "ts": 1719500045, "text": "Can we see that clearly?" },
-    { "meetingId": "m_sample", "speaker": "Bob", "ts": 1719500050, "text": "Hey Rahid, make a diagram of our budget." },
+    { "meetingId": "m_sample", "speaker": "Bob", "ts": 1719500050, "text": "Hey Flash, make a diagram of our budget." },
     { "meetingId": "m_sample", "speaker": "Alice", "ts": 1719500075, "text": "Nice. What should we cut to save another 1000?" }
   ]
 }
