@@ -44,6 +44,7 @@ export default function HomePage() {
 
   const [meetings, setMeetings] = useState<MeetingSummary[]>([]);
   const [loadingMeetings, setLoadingMeetings] = useState(true);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -91,6 +92,21 @@ export default function HomePage() {
       }
     } catch (err) {
       setJoin({ kind: "error", message: String(err) });
+    }
+  }
+
+  async function deleteMeeting(id: string) {
+    if (!window.confirm(`Delete meeting "${id}"? This removes its canvas and stored context permanently.`)) {
+      return;
+    }
+    setDeletingId(id);
+    try {
+      await fetch(`/api/meetings/${encodeURIComponent(id)}`, { method: "DELETE" });
+      setMeetings((prev) => prev.filter((m) => m.meetingId !== id));
+    } catch {
+      /* leave the row as-is on failure */
+    } finally {
+      setDeletingId(null);
     }
   }
 
@@ -176,7 +192,7 @@ export default function HomePage() {
         ) : (
           <ul style={{ listStyle: "none", margin: "14px 0 0", padding: 0, display: "flex", flexDirection: "column", gap: 8 }}>
             {meetings.map((m) => (
-              <li key={m.meetingId}>
+              <li key={m.meetingId} style={{ display: "flex", alignItems: "center", gap: 8 }}>
                 <Link
                   href={`/m/${encodeURIComponent(m.meetingId)}`}
                   className="btn"
@@ -184,13 +200,23 @@ export default function HomePage() {
                     display: "flex",
                     justifyContent: "space-between",
                     alignItems: "center",
-                    width: "100%",
+                    flex: 1,
                     gap: 12,
                   }}
                 >
                   <span style={{ fontWeight: 600 }}>{m.meetingId}</span>
                   <span style={{ fontSize: 12, color: "#64748b" }}>{metaLine(m) || "—"}</span>
                 </Link>
+                <button
+                  type="button"
+                  className="btn btn-danger"
+                  onClick={() => deleteMeeting(m.meetingId)}
+                  disabled={deletingId === m.meetingId}
+                  title={`Delete meeting "${m.meetingId}"`}
+                  aria-label={`Delete meeting ${m.meetingId}`}
+                >
+                  {deletingId === m.meetingId ? "…" : "✕"}
+                </button>
               </li>
             ))}
           </ul>
