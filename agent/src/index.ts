@@ -63,14 +63,26 @@ async function startRealMeet(meetingId: string, meetUrl: string): Promise<void> 
   await bot.join(meetUrl);
 
   const activeBot = bot;
+  // While Flash is speaking (and briefly after), drop captured audio so it doesn't
+  // transcribe / re-trigger on its own voice echoing back through the room mic.
+  let speaking = false;
+  let deafUntil = 0;
+  const SPEAK_COOLDOWN_MS = 1200;
+
   // Flash speaks INTO the meeting (SLNG TTS -> bot's injected mic). Falls back to
   // the host-PC voice if synthesis/injection fails.
   const responder: Responder = {
     speak: async (t) => {
       console.log(`\n[🔊 ${CONFIG.agentName} -> meeting]: ${t}\n`);
-      const wav = CONFIG.voice === "slng" ? await synthesizeSlng(t) : null;
-      if (wav) await activeBot.speakInMeeting(wav);
-      else await speaker.speak(t);
+      speaking = true;
+      try {
+        const wav = CONFIG.voice === "slng" ? await synthesizeSlng(t) : null;
+        if (wav) await activeBot.speakInMeeting(wav);
+        else await speaker.speak(t);
+      } finally {
+        speaking = false;
+        deafUntil = Date.now() + SPEAK_COOLDOWN_MS;
+      }
     },
     postToMeeting: (t) => activeBot.postChat(t),
   };
@@ -101,6 +113,7 @@ async function startRealMeet(meetingId: string, meetUrl: string): Promise<void> 
   await activeBot.startAudioCapture((b64) => {
     void (async () => {
       try {
+        if (speaking || Date.now() < deafUntil) return; // ignore Flash's own voice
         const text = await transcribe(Buffer.from(b64, "base64"));
         if (!text) return;
         console.log("[heard]", text);
