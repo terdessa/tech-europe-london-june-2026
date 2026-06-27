@@ -19,7 +19,11 @@
     "n8n:activate": "dotenv -e .env -- cross-env N8N_USER_FOLDER=.n8n-local N8N_BLOCK_ENV_ACCESS_IN_NODE=false N8N_DIAGNOSTICS_ENABLED=false N8N_VERSION_NOTIFICATIONS_ENABLED=false N8N_TEMPLATES_ENABLED=false n8n publish:workflow --id=flash-agent-p3",
     "n8n:import": "dotenv -e .env -- cross-env N8N_USER_FOLDER=.n8n-local N8N_BLOCK_ENV_ACCESS_IN_NODE=false N8N_DIAGNOSTICS_ENABLED=false N8N_VERSION_NOTIFICATIONS_ENABLED=false N8N_TEMPLATES_ENABLED=false n8n import:workflow --input=Flash-Agent.json",
     "n8n:start": "dotenv -e .env -- cross-env N8N_USER_FOLDER=.n8n-local N8N_BLOCK_ENV_ACCESS_IN_NODE=false N8N_DIAGNOSTICS_ENABLED=false N8N_VERSION_NOTIFICATIONS_ENABLED=false N8N_TEMPLATES_ENABLED=false n8n start",
-    "validate:workflow": "node scripts/validate-workflow.cjs"
+    "validate:workflow": "node scripts/validate-workflow.cjs",
+    "start:all": "bash scripts/flash.sh start",
+    "stop:all": "bash scripts/flash.sh stop",
+    "restart:all": "bash scripts/flash.sh restart",
+    "status": "bash scripts/flash.sh status"
   },
   "dependencies": {
     "@superlinked/sie-sdk": "^0.6.14",
