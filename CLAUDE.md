@@ -25,7 +25,7 @@ Project guidance for Claude Code. Read this first each session.
 | Track | Plan | Owns | Partner |
 |---|---|---|---|
 | Ears & Mouth | [`plans/p1-ears-and-mouth.md`](./plans/p1-ears-and-mouth.md) | LiveKit agent, audio, wake-word, SLNG STT/TTS | SLNG |
-| Memory | [`plans/p2-memory.md`](./plans/p2-memory.md) | Superlinked context store + retrieval API | Superlinked |
+| Retrieval & Context | [`plans/p2-retrieval.md`](./plans/p2-retrieval.md) | Superlinked-powered semantic retrieval + reranking + doc parsing over the transcript & prep docs (Rahid's recall) | Superlinked |
 | Brain | [`plans/p3-brain.md`](./plans/p3-brain.md) | n8n agent workflow + Gemini + diagram generation | n8n, Gemini |
 | Face | [`plans/p4-face.md`](./plans/p4-face.md) | Web app, diagram render, post-meeting Q&A, Aikido | (Aikido) |
 | Demo & Story | [`plans/p5-demo-and-story.md`](./plans/p5-demo-and-story.md) | Pitch, demo script, Loom, slides, README, submission | — |
@@ -34,7 +34,7 @@ Project guidance for Claude Code. Read this first each session.
 
 - **Agent runtime:** LiveKit (agent joins the room). Node or Python per P1's choice.
 - **Voice:** SLNG — speech-to-text + text-to-speech.
-- **Memory:** Superlinked (semantic index over transcript + prep docs).
+- **Retrieval:** Superlinked — an inference engine (embeddings, semantic search, reranking, doc parsing) over a plain store of the transcript + prep docs. *It's the semantic layer, not the database.*
 - **Brain:** n8n workflows orchestrating Gemini calls (live agent flow + post-meeting pipeline).
 - **Frontend:** React + Vite + TypeScript; Mermaid for diagram rendering.
 - **Security:** Aikido repo scan.

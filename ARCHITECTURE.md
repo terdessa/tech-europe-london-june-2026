@@ -35,7 +35,7 @@ POST-MEETING  (meeting ends)
 | ID | Component | Owner | Responsibility |
 |---|---|---|---|
 | P1 | **Agent runtime** | Ears & Mouth | Join LiveKit room, capture audio, SLNG STT→utterances, wake-word, SLNG TTS of responses back into the call |
-| P2 | **Context service** | Memory | Superlinked index + a small HTTP API: ingest utterances/docs, retrieve, dump transcript |
+| P2 | **Retrieval & Context service** | Retrieval | A plain store of raw utterances/sources **+ Superlinked as the semantic layer** (embeddings, semantic search, reranking, doc parsing/OCR). HTTP API: ingest, retrieve, dump transcript. *Superlinked is the inference engine, not the database.* |
 | P3 | **Brain (n8n + Gemini)** | Brain | n8n webhooks for the live agent flow + post-meeting pipeline; Gemini reasoning + diagram-code generation; events feed for the UI |
 | P4 | **Web app** | Face | Pre-meeting upload, live pop-up card + diagram render (Mermaid), post-meeting Q&A app, Aikido |
 | — | **Demo & story** | Demo & Story | Pitch, script, Loom, slides, README, submission |
