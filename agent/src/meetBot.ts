@@ -91,12 +91,13 @@ export class MeetBot {
       "--use-fake-device-for-media-stream",
       "--autoplay-policy=no-user-gesture-required",
       "--disable-blink-features=AutomationControlled",
-      // Stability: "--no-sandbox"/"--disable-dev-shm-usage" stop the "Page crashed"
-      // seen on small /dev/shm; "--disable-gpu" avoids GPU-process crashes headful.
-      "--no-sandbox",
-      "--disable-dev-shm-usage",
-      "--disable-gpu",
     ];
+    // Linux/Docker stability flags ONLY — on macOS "--no-sandbox" + "--disable-gpu"
+    // crash the renderer with "Aw, Snap! (error code 5)". The sandbox + GPU are
+    // expected on macOS, so we must NOT pass these there.
+    if (process.platform === "linux") {
+      args.push("--no-sandbox", "--disable-dev-shm-usage", "--disable-gpu");
+    }
     // ignoreHTTPSErrors fixes the intermittent ERR_CERT_AUTHORITY_INVALID; granting
     // media permissions up-front means no permission wall before "Ask to join".
     const ctxOpts = {
