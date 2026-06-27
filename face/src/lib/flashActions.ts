@@ -139,6 +139,18 @@ export async function runSummarize(
     error = error ?? r.error;
   }
 
+  // Fallback source: the current graph itself (p4-plan.md — summarize gathers
+  // "current graph nodes/edges" too). When P2 has no transcript, derive the
+  // utterance list from speech/chat nodes so the mock still produces a summary.
+  if (transcript.utterances.length === 0) {
+    const current = getCanvas(meetingId);
+    transcript = {
+      utterances: (current?.nodes ?? [])
+        .filter((n) => n.data.nodeType === "utterance" || n.data.nodeType === "chat_context")
+        .map((n) => ({ speaker: n.data.speaker, text: n.data.detail ?? n.data.label })),
+    };
+  }
+
   let result: FinalizeResponse | undefined;
   let usedMock = false;
 
