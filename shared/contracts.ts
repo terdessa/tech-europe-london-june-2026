@@ -1,4 +1,4 @@
-// Rahid — shared contracts (the seams between tracks).
+// Flash — shared contracts (the seams between tracks).
 // Mirrors ARCHITECTURE.md §3. FROZEN: agree changes with the team before editing.
 // These are interface schemas, not real data.
 
@@ -8,9 +8,10 @@ export type MeetingId = string;
 /** One spoken line, speaker-attributed (P1 -> P2 /ingest, §3.1). */
 export interface Utterance {
   meetingId: MeetingId;
-  speaker: string; // participant identity / Meet caption name
+  speaker: string; // participant identity / Meet caption name (e.g. "Alice", or "Alice (screen)")
   ts: number; // epoch seconds
   text: string;
+  source?: "live" | "screen"; // "live" (spoken, default) | "screen" (a description from /vision)
 }
 
 /** A prep document or link added before the meeting (P4 -> P2 /sources, §3.2). */
@@ -82,6 +83,18 @@ export interface AskResponse {
   sources: string[];
 }
 
+/** Screen-frame vision (P1 -> P3 /vision, §3.9). Flash "watches" shared screens. */
+export interface VisionRequest {
+  meetingId: MeetingId;
+  imageBase64: string;
+  ts: number;
+  sharedBy?: string; // who is sharing, for the "X (screen)" speaker label
+}
+export interface VisionResponse {
+  description: string; // P1 ingests this as an Utterance with source "screen"
+  data?: Record<string, unknown>; // optional structured extraction
+}
+
 /** Dispatch the bot to a Google Meet (P4 launcher -> P1 /join, §3.8). */
 export interface JoinRequest {
   meetingId: MeetingId;
@@ -92,5 +105,5 @@ export interface JoinResponse {
   error?: string;
 }
 
-/** The wake phrase that flips Rahid from passive to active. */
-export const WAKE_PHRASE = "hey rahid";
+/** The wake phrase that flips Flash from passive to active. */
+export const WAKE_PHRASE = "hey flash";

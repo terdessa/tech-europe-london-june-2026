@@ -4,7 +4,7 @@
 
 ## Your mission
 
-You make the team **win the room.** The engineers build Rahid; you make sure the judges *understand it, believe it, and remember it.* You own the story, the live demo, the 2-minute video, the slides, the README polish, and the submission. You are also the **clock** — you keep everyone aimed at a working demo by 19:00.
+You make the team **win the room.** The engineers build Flash; you make sure the judges *understand it, believe it, and remember it.* You own the story, the live demo, the 2-minute video, the slides, the README polish, and the submission. You are also the **clock** — you keep everyone aimed at a working demo by 19:00.
 
 This is one of the most important roles: a great project with a confusing demo loses to a simple project with a clear one.
 
@@ -18,21 +18,21 @@ By **19:00** the team must submit:
 Judging = **creativity + technical complexity + partner usage.** Your job is to make all three obvious.
 
 ## The one-sentence pitch (memorize this)
-> "Google Meet gives you a summary *after* the meeting. **Rahid** is an AI teammate that *joins* the meeting, helps you live — answers questions and draws diagrams on command — and turns the whole discussion into a brain you can keep asking afterward."
+> "Google Meet gives you a summary *after* the meeting. **Flash** is an AI teammate that *joins* the meeting, helps you live — answers questions and draws diagrams on command — and turns the whole discussion into a brain you can keep asking afterward."
 
 ## Phase 1 — Own the narrative (early)
 1. Learn the demo flow cold (below). Sit with the team for 10 min so you can explain it in plain words.
-2. Write the **pitch**: problem (meetings are passive, info gets lost) → what Rahid does → why it's different → the partners. Keep it to ~45 seconds spoken.
+2. Write the **pitch**: problem (meetings are passive, info gets lost) → what Flash does → why it's different → the partners. Keep it to ~45 seconds spoken.
 3. Draft **3–5 slides**: title, problem, how it works (use the diagram from `ARCHITECTURE.md`), partners used, the ask. Clean and minimal.
 
 ## Phase 2 — Prepare the demo content
-The live demo is **two people + Rahid**. Prepare the script so it never relies on improvisation:
-1. **Prep doc** (uploaded before the meeting): a short "Q3 budget plan" doc — so Rahid's diagram is *grounded* and accurate. Coordinate with P4 on uploading it.
+The live demo is **two people + Flash**. Prepare the script so it never relies on improvisation:
+1. **Prep doc** (uploaded before the meeting): a short "Q3 budget plan" doc — so Flash's diagram is *grounded* and accurate. Coordinate with P4 on uploading it.
 2. **The spoken script** (rehearse with a teammate):
    - Person A: "Okay, for Q3 we have **5,000** budget. We spent **500** on design, **1,000** on ads, so we've got **3,500** left."
    - Person B: "Can we see that clearly?"
-   - Person A: **"Hey Rahid, make a diagram of our budget."** → *(diagram appears)*
-   - Person A: "Hey Rahid, what should we cut to save 1,000?" → *(grounded answer)*
+   - Person A: **"Hey Flash, make a diagram of our budget."** → *(diagram appears)*
+   - Person A: "Hey Flash, what should we cut to save 1,000?" → *(grounded answer)*
    - *(End meeting)* → open the post-meeting app → "Based on the meeting, draft next steps." → *(answer)*
 3. This hits every selling point: live action, grounding, diagram, voice, **and** the after-meeting reuse.
 

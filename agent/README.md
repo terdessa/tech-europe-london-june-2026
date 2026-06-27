@@ -1,6 +1,6 @@
 # agent/ — P1: Ears & Mouth (Google Meet bot + SLNG)
 
-The Rahid meeting bot. Joins a Google Meet, transcribes (speaker-attributed), wakes on "Hey Rahid", and speaks answers back via SLNG.
+The Flash meeting bot. Joins a Google Meet, transcribes (speaker-attributed), wakes on "Hey Flash", and speaks answers back via SLNG.
 
 > Full plan: [`../plans/p1-ears-and-mouth.md`](../plans/p1-ears-and-mouth.md) · Architecture: [`../ARCHITECTURE.md`](../ARCHITECTURE.md) · Contracts: [`../shared/contracts.ts`](../shared/contracts.ts)
 
@@ -21,7 +21,7 @@ Port busy? `npx kill-port 8001` or `$env:AGENT_PORT=8002; npm start`.
 3. Implement, in order:
    - join a Meet by link + print transcript → console
    - `POST /ingest` each `Utterance` to the context service
-   - wake-word (`hey rahid`) + capture `requestText`
+   - wake-word (`hey flash`) + capture `requestText`
    - SLNG TTS: speak a string into the call
    - `POST /agent` on wake → speak `response.text`
 4. Test with mocks first (canned `/ingest` + `/agent`), then integrate.

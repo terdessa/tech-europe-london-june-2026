@@ -22,10 +22,10 @@ venv/
 *.db
 data/context/
 
+# tts audio output
+data/tts/
+
 # os/editor
 .DS_Store
 .idea/
 .vscode/
-
-# tts audio output
-data/tts/

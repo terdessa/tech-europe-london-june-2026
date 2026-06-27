@@ -2,8 +2,8 @@
 
 Scoped context for work in this folder. Also read the root [`../CLAUDE.md`](../CLAUDE.md), [`../ARCHITECTURE.md`](../ARCHITECTURE.md), and your plan [`../plans/p1-ears-and-mouth.md`](../plans/p1-ears-and-mouth.md).
 
-## You are building P1 — Rahid's ears and mouth
-The **Google Meet bot**: joins a Meet by link, hears everyone (speaker-attributed transcript), detects **"Hey Rahid"**, and **speaks answers back into the call** via SLNG. Voice + chat happen *in the meeting*; all visuals live on the web workspace (P4).
+## You are building P1 — Flash's ears and mouth
+The **Google Meet bot**: joins a Meet by link, hears everyone (speaker-attributed transcript), detects **"Hey Flash"**, and **speaks answers back into the call** via SLNG. Voice + chat happen *in the meeting*; all visuals live on the web workspace (P4).
 
 ## Decide first (hour 1) — how the bot joins Meet
 Pick the fastest that works (details in the plan):
