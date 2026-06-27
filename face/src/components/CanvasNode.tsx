@@ -87,6 +87,44 @@ function CanvasNodeImpl({ data, selected }: NodeProps) {
           {d.label}
         </div>
 
+        {/* image thumbnail for image nodes */}
+        {d.nodeType === "image" && d.url && (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={d.url}
+            alt={d.label}
+            style={{
+              marginTop: 8,
+              width: "100%",
+              borderRadius: 8,
+              border: "1px solid #e6e8f0",
+              display: "block",
+            }}
+          />
+        )}
+
+        {/* compact code snippet for diagram nodes (full render is in the panel) */}
+        {d.diagramCode && (
+          <pre
+            style={{
+              marginTop: 8,
+              padding: "6px 8px",
+              background: "#f7f7fb",
+              border: "1px solid #ececf3",
+              borderRadius: 8,
+              fontSize: 9,
+              lineHeight: 1.3,
+              color: "#5b6072",
+              whiteSpace: "pre-wrap",
+              maxHeight: 64,
+              overflow: "hidden",
+              fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
+            }}
+          >
+            {d.diagramCode.split("\n").slice(0, 4).join("\n")}
+          </pre>
+        )}
+
         {meta && (
           <div
             style={{
