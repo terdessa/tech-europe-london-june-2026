@@ -34,6 +34,40 @@ const CAPTURE_SCRIPT = `
 })();
 `;
 
+// Injected BEFORE Meet runs. Makes Flash's microphone a Web Audio destination we
+// control, so window.__flashSpeak(base64Wav) plays TTS straight into the call.
+const MIC_SCRIPT = `
+(() => {
+  if (window.__flashMicInit) return; window.__flashMicInit = true;
+  const md = navigator.mediaDevices;
+  if (!md || !md.getUserMedia) return;
+  const orig = md.getUserMedia.bind(md);
+  const AC = window.AudioContext || window.webkitAudioContext;
+  const ctx = new AC();
+  const mic = ctx.createMediaStreamDestination();
+  md.getUserMedia = async function(constraints){
+    if (!constraints || !constraints.audio) return orig(constraints);
+    const out = new MediaStream();
+    mic.stream.getAudioTracks().forEach(function(t){ out.addTrack(t); });
+    if (constraints.video){ try { (await orig({ video: constraints.video })).getVideoTracks().forEach(function(t){ out.addTrack(t); }); } catch(e){} }
+    return out;
+  };
+  window.__flashSpeak = async function(b64){
+    try {
+      if (ctx.state === 'suspended') await ctx.resume();
+      const bin = atob(b64); const u8 = new Uint8Array(bin.length);
+      for (let i=0;i<bin.length;i++) u8[i] = bin.charCodeAt(i);
+      const buf = await ctx.decodeAudioData(u8.buffer);
+      const src = ctx.createBufferSource();
+      src.buffer = buf;
+      src.connect(mic);            // -> into the meeting (Flash's mic)
+      src.connect(ctx.destination); // -> bot's local speaker so you hear it too
+      await new Promise(function(res){ src.onended = res; src.start(); });
+    } catch(e){ console.warn('flashSpeak failed', e); }
+  };
+})();
+`;
+
 /**
  * Joins a Google Meet as a separate guest named "Flash" (NOT your account),
  * captures the meeting audio for STT, can post chat, and screenshot the tab.
@@ -67,6 +101,7 @@ export class MeetBot {
 
     await this.ctx.exposeBinding("__flashAudio", (_src, b64: string) => this.audioHandler?.(b64));
     await this.ctx.addInitScript(CAPTURE_SCRIPT);
+    await this.ctx.addInitScript(MIC_SCRIPT);
 
     const page = this.page;
     await page.goto(meetUrl, { waitUntil: "load", timeout: 60000 });
@@ -102,6 +137,31 @@ export class MeetBot {
       console.log("[meet] audio capture started (SLNG STT)");
     } catch (err) {
       console.warn("[meet] could not start audio capture:", (err as Error).message);
+    }
+  }
+
+  /** Speak a WAV into the meeting via Flash's (injected) microphone. */
+  async speakInMeeting(wav: Buffer): Promise<void> {
+    const page = this.page;
+    if (!page) return;
+    try {
+      await this.ensureUnmuted();
+      const b64 = wav.toString("base64");
+      await page.evaluate((b: string) => (window as unknown as { __flashSpeak?: (s: string) => Promise<void> }).__flashSpeak?.(b), b64);
+    } catch (err) {
+      console.warn("[meet] speakInMeeting failed:", (err as Error).message);
+    }
+  }
+
+  /** Best-effort: turn Flash's microphone on so the call can hear it. */
+  async ensureUnmuted(): Promise<void> {
+    const page = this.page;
+    if (!page) return;
+    try {
+      const micOff = page.getByRole("button", { name: /turn on microphone/i });
+      if (await micOff.isVisible({ timeout: 1500 })) await micOff.click();
+    } catch {
+      /* already on, or button not found */
     }
   }
 

@@ -2,7 +2,7 @@ import express from "express";
 import type { JoinRequest, JoinResponse, Utterance } from "../../shared/contracts";
 import { CONFIG } from "./config";
 import { MockAudioSource, type AudioSource } from "./audioSource";
-import { createSpeaker } from "./speaker";
+import { createSpeaker, synthesizeSlng } from "./speaker";
 import { createPipeline, type Responder } from "./pipeline";
 import { MeetBot } from "./meetBot";
 import { ingest } from "./contextClient";
@@ -63,8 +63,15 @@ async function startRealMeet(meetingId: string, meetUrl: string): Promise<void> 
   await bot.join(meetUrl);
 
   const activeBot = bot;
+  // Flash speaks INTO the meeting (SLNG TTS -> bot's injected mic). Falls back to
+  // the host-PC voice if synthesis/injection fails.
   const responder: Responder = {
-    speak: (t) => speaker.speak(t),
+    speak: async (t) => {
+      console.log(`\n[🔊 ${CONFIG.agentName} -> meeting]: ${t}\n`);
+      const wav = CONFIG.voice === "slng" ? await synthesizeSlng(t) : null;
+      if (wav) await activeBot.speakInMeeting(wav);
+      else await speaker.speak(t);
+    },
     postToMeeting: (t) => activeBot.postChat(t),
   };
 

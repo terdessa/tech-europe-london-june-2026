@@ -49,39 +49,46 @@ function playWavWindows(file: string): Promise<void> {
   });
 }
 
-/** Real voice via SLNG TTS (VOICE=slng): synthesize the WAV, save it, and play it. */
+/** Synthesize speech via SLNG TTS. Returns the WAV bytes, or null on failure. */
+export async function synthesizeSlng(text: string): Promise<Buffer | null> {
+  if (!CONFIG.slngApiKey || !CONFIG.slngTtsUrl) {
+    console.warn("[slng] missing SLNG_API_KEY / SLNG_TTS_URL — logged only");
+    return null;
+  }
+  try {
+    const r = await fetch(CONFIG.slngTtsUrl, {
+      method: "POST",
+      headers: { "content-type": "application/json", authorization: `Bearer ${CONFIG.slngApiKey}` },
+      body: JSON.stringify({ model: CONFIG.slngModel, text }),
+    });
+    if (!r.ok) {
+      let detail = "";
+      try {
+        detail = (await r.text()).slice(0, 200);
+      } catch {
+        /* ignore */
+      }
+      console.warn(`[slng] TTS ${r.status} ${r.statusText} ${detail}`);
+      return null;
+    }
+    return Buffer.from(await r.arrayBuffer());
+  } catch (err) {
+    console.warn("[slng] TTS failed:", (err as Error).message);
+    return null;
+  }
+}
+
+/** Real voice via SLNG TTS (VOICE=slng): synthesize the WAV, save it, and play it on the host PC. */
 export class SlngSpeaker implements Speaker {
   async speak(text: string): Promise<void> {
     console.log(`\n[🔊 ${CONFIG.agentName} (SLNG)]: ${text}\n`);
-    if (!CONFIG.slngApiKey || !CONFIG.slngTtsUrl) {
-      console.warn("[slng] missing SLNG_API_KEY / SLNG_TTS_URL — logged only");
-      return;
-    }
-    try {
-      const r = await fetch(CONFIG.slngTtsUrl, {
-        method: "POST",
-        headers: { "content-type": "application/json", authorization: `Bearer ${CONFIG.slngApiKey}` },
-        body: JSON.stringify({ model: CONFIG.slngModel, text }),
-      });
-      if (!r.ok) {
-        let detail = "";
-        try {
-          detail = (await r.text()).slice(0, 200);
-        } catch {
-          /* ignore */
-        }
-        console.warn(`[slng] TTS ${r.status} ${r.statusText} ${detail}`);
-        return;
-      }
-      const audio = Buffer.from(await r.arrayBuffer());
-      const dir = path.resolve(__dirname, "../../data/tts");
-      fs.mkdirSync(dir, { recursive: true });
-      const file = path.join(dir, `tts-${Date.now()}.wav`);
-      fs.writeFileSync(file, audio);
-      await playWavWindows(file);
-    } catch (err) {
-      console.warn("[slng] TTS failed:", (err as Error).message);
-    }
+    const audio = await synthesizeSlng(text);
+    if (!audio) return;
+    const dir = path.resolve(__dirname, "../../data/tts");
+    fs.mkdirSync(dir, { recursive: true });
+    const file = path.join(dir, `tts-${Date.now()}.wav`);
+    fs.writeFileSync(file, audio);
+    await playWavWindows(file);
   }
 }
 
