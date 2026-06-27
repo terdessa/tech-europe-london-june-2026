@@ -35,15 +35,32 @@ All Superlinked-specific code lives in one module: [`src/retrieval/superlinkedCl
 
 ### Which Superlinked interface this repo uses
 
-**SIE (Superlinked Inference Engine) HTTP API.** Confirmed against current Superlinked docs:
+**SIE (Superlinked Inference Engine), via the official `@superlinked/sie-sdk` TypeScript SDK.** Confirmed against:
 
+- [SIE Hackathon Quickstart](https://github.com/superlinked/sie) (Filip's hosted cluster)
 - [SIE docs](https://superlinked.com/docs)
-- [`superlinked/sie` on GitHub](https://github.com/superlinked/sie)
-- [SIE HTTP API reference](https://superlinked.com/docs/reference/api)
+- [`@superlinked/sie-sdk` on npm](https://www.npmjs.com/package/@superlinked/sie-sdk)
 
-We picked SIE (over the older `superlinked` Python framework) because it is language-agnostic HTTP, can be self-hosted or pointed at a managed cluster, and exposes exactly the three primitives we need: `encode`, `score`, `extract`. The framework path would force us into Python and a heavier schema-DAG model that we don't benefit from here.
+We use the SDK rather than raw HTTP because it bakes in:
 
-Switching to the framework later would require: (a) standing up a `superlinked` Python service that exposes equivalent endpoints, and (b) changing only `src/retrieval/superlinkedClient.ts`. No other file knows the difference.
+- **Cold-load provisioning retries.** First call to a model can take ~1 minute and may return `503 PROVISIONING` / `503 MODEL_LOADING` mid-load. With `waitForCapacity: true` and `provisionTimeout: 900_000` the SDK polls until the model is ready instead of timing out.
+- **GPU lane routing** (`gpu: "l4"` for small encoders/rerankers, `"rtx6000"` for generative models).
+- **Strongly typed responses** (`EncodeResult.dense: Float32Array`, `ScoreResult.scores[]: { itemId, score, rank }`).
+
+Hosted hackathon endpoint (in `.env.example`):
+`http://a64e1dc31032c40e4b1e9330a1273c83-1760332796.us-east-2.elb.amazonaws.com:8080`
+
+Self-host alternative: `docker run -p 8080:8080 superlinked/sie-server` then point `SUPERLINKED_ENDPOINT=http://localhost:8080`.
+
+Default models (override via env vars to swap without code changes):
+
+| Role | Default | Why |
+|---|---|---|
+| Embed | `sentence-transformers/all-MiniLM-L6-v2` | 384-dim, fast, recommended in the SIE quickstart |
+| Rerank | `cross-encoder/ms-marco-MiniLM-L-6-v2` | Small cross-encoder, ~ms per pair |
+| Doc parse | `docling` | PDF→markdown; TODO contract w/ sponsor |
+
+Switching back to bge-m3 / bge-reranker-v2-m3 is a one-line `.env` change — no code edits.
 
 ## 4. Environment variables
 

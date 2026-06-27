@@ -19,8 +19,16 @@ export const config = {
     apiKey: str(process.env.SUPERLINKED_API_KEY, ""),
     clusterUrl: str(process.env.SUPERLINKED_CLUSTER_URL, ""),
     mode: str(process.env.SUPERLINKED_MODE, "sie") as "sie" | "framework",
-    embedModel: str(process.env.SUPERLINKED_EMBED_MODEL, "BAAI/bge-m3"),
-    rerankModel: str(process.env.SUPERLINKED_RERANK_MODEL, "BAAI/bge-reranker-v2-m3"),
+    gpu: str(process.env.SUPERLINKED_GPU, "l4"),
+    provisionTimeoutMs: num(process.env.SUPERLINKED_PROVISION_TIMEOUT_MS, 900_000),
+    embedModel: str(
+      process.env.SUPERLINKED_EMBED_MODEL,
+      "sentence-transformers/all-MiniLM-L6-v2",
+    ),
+    rerankModel: str(
+      process.env.SUPERLINKED_RERANK_MODEL,
+      "cross-encoder/ms-marco-MiniLM-L-6-v2",
+    ),
     docModel: str(process.env.SUPERLINKED_DOC_MODEL, "docling"),
   },
 } as const;
