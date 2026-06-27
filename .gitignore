@@ -11,6 +11,12 @@ build/
 npm-debug.log*
 .n8n-local/
 
+# next.js (face)
+.next/
+face/.next/
+next-env.d.ts
+*.tsbuildinfo
+
 # python
 __pycache__/
 *.pyc
@@ -29,6 +35,10 @@ data/tts/
 # google meet bot profile (holds your Google session — never commit)
 .meet-profile/
 agent/.meet-profile/
+
+# untracked reference prototypes
+/archangel-ai/
+/archangel-ai-diagram-editor/
 
 # os/editor
 .DS_Store

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Aikido Agent Security"
+  short_description: "Integrate Aikido with coding agents"
+  default_prompt: "Use $aikido-agent-security to connect Aikido to this repo and configure coding-agent security checks."

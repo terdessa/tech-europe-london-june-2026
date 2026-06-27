@@ -1,0 +1,459 @@
+/* Flash P4 — light-mode global styles. Plain CSS, no Tailwind. */
+
+:root {
+  --bg: #ffffff;
+  --bg-soft: #f7f8fb;
+  --bg-canvas: #fbfcfe;
+  --text: #1a1c23;
+  --text-soft: #5b6072;
+  --text-faint: #8b90a3;
+  --border: #e4e6ee;
+  --border-strong: #d0d3e0;
+  --accent: #4f46e5;
+  --accent-soft: #eef2ff;
+  --emerald: #059669;
+  --shadow-sm: 0 1px 2px rgba(20, 24, 40, 0.06);
+  --shadow-md: 0 4px 16px rgba(20, 24, 40, 0.1);
+  --shadow-lg: 0 10px 40px rgba(20, 24, 40, 0.14);
+  --radius: 12px;
+  --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica,
+    Arial, "Apple Color Emoji", "Segoe UI Emoji", sans-serif;
+  --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+#__next,
+body > div {
+  height: 100%;
+}
+
+a {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+button {
+  font-family: inherit;
+  cursor: pointer;
+}
+
+/* ---- Full-screen canvas shell ------------------------------------------ */
+
+.flash-canvas-root {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  background: var(--bg-canvas);
+}
+
+.flash-canvas-root .react-flow {
+  background: var(--bg-canvas);
+}
+
+/* Make React Flow attribution unobtrusive in the light theme. */
+.react-flow__attribution {
+  background: transparent;
+  font-size: 9px;
+}
+
+/* ---- Generic button styles --------------------------------------------- */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  background: var(--bg);
+  border: 1px solid var(--border-strong);
+  border-radius: 9px;
+  box-shadow: var(--shadow-sm);
+  transition: background 0.12s ease, transform 0.06s ease;
+}
+
+.btn:hover {
+  background: var(--bg-soft);
+}
+
+.btn:active {
+  transform: translateY(1px);
+}
+
+.btn-primary {
+  color: #fff;
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.btn-primary:hover {
+  background: #4338ca;
+}
+
+.btn-danger {
+  color: #b91c1c;
+  border-color: #fecaca;
+  background: #fef2f2;
+}
+
+.btn-danger:hover {
+  background: #fee2e2;
+}
+
+.input {
+  padding: 8px 11px;
+  font-size: 13px;
+  color: var(--text);
+  background: var(--bg);
+  border: 1px solid var(--border-strong);
+  border-radius: 9px;
+  outline: none;
+}
+
+.input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+/* ---- Landing / launcher ------------------------------------------------ */
+
+.launcher {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 28px;
+  padding: 24px;
+  background: radial-gradient(
+    1200px 600px at 50% -10%,
+    var(--accent-soft),
+    var(--bg) 60%
+  );
+}
+
+.launcher-card {
+  width: 100%;
+  max-width: 440px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  box-shadow: var(--shadow-lg);
+  padding: 32px;
+}
+
+.wordmark {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 38px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.wordmark .bolt {
+  color: var(--accent);
+}
+
+.tagline {
+  margin: 8px 0 0;
+  color: var(--text-soft);
+  font-size: 15px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 18px;
+}
+
+.field label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-soft);
+}
+
+.field .input {
+  width: 100%;
+}
+
+.launcher-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 22px;
+}
+
+.launcher-actions .btn {
+  flex: 1;
+  justify-content: center;
+  padding: 11px 12px;
+}
+
+/* ---- Canvas toolbar ---------------------------------------------------- */
+
+.toolbar {
+  position: absolute;
+  top: 14px;
+  left: 14px;
+  right: 14px;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  pointer-events: none;
+}
+
+.toolbar-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(8px);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  box-shadow: var(--shadow-md);
+  padding: 10px 12px;
+  pointer-events: auto;
+}
+
+.toolbar-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  padding-right: 4px;
+}
+
+.toolbar-brand .bolt {
+  color: var(--accent);
+}
+
+.toolbar-ask {
+  display: flex;
+  gap: 8px;
+  flex: 1;
+  min-width: 280px;
+}
+
+.toolbar-ask .input {
+  flex: 1;
+}
+
+.toolbar-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.btn:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.toolbar-status {
+  display: inline-flex;
+  align-self: flex-start;
+  align-items: center;
+  gap: 7px;
+  font-size: 11px;
+  color: var(--text-soft);
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 4px 9px;
+  box-shadow: var(--shadow-sm);
+  pointer-events: auto;
+}
+
+/* ---- Selected node panel ---------------------------------------------- */
+
+.node-panel {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  bottom: 14px;
+  z-index: 11;
+  width: 340px;
+  display: flex;
+  flex-direction: column;
+  background: #ffffff;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  box-shadow: var(--shadow-lg);
+  overflow: hidden;
+}
+
+.node-panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px 10px;
+  border-bottom: 1px solid var(--border);
+}
+
+.icon-btn {
+  border: none;
+  background: transparent;
+  color: var(--text-faint);
+  font-size: 14px;
+  line-height: 1;
+  padding: 4px 6px;
+  border-radius: 6px;
+}
+
+.icon-btn:hover {
+  background: var(--bg-soft);
+  color: var(--text);
+}
+
+.node-panel-title {
+  padding: 12px 14px 0;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1.35;
+}
+
+.node-panel-body {
+  flex: 1;
+  overflow: auto;
+  padding: 12px 14px;
+}
+
+.node-panel-section {
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-faint);
+}
+
+.node-panel-json {
+  margin: 6px 0 0;
+  font-size: 11px;
+  font-family: var(--mono);
+  white-space: pre-wrap;
+  word-break: break-word;
+  background: var(--bg-soft);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px;
+  color: var(--text);
+}
+
+.node-panel-foot {
+  padding: 12px 14px;
+  border-top: 1px solid var(--border);
+}
+
+.diagram-preview svg {
+  max-width: 100%;
+  height: auto;
+}
+
+/* ---- Edge-type picker in the toolbar ---------------------------------- */
+
+.edge-type-pick {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-soft);
+}
+
+.edge-type-pick .input {
+  padding: 6px 8px;
+  font-size: 12px;
+}
+
+/* ---- Add-node panel --------------------------------------------------- */
+
+.add-panel {
+  position: absolute;
+  top: 96px;
+  left: 14px;
+  z-index: 11;
+  width: 320px;
+  max-height: calc(100vh - 120px);
+  display: flex;
+  flex-direction: column;
+  background: #ffffff;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  box-shadow: var(--shadow-lg);
+  overflow: hidden;
+}
+
+.add-panel-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px;
+  overflow: auto;
+}
+
+.add-field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.add-field > span {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-faint);
+}
+
+.add-field .input,
+.add-field select.input {
+  width: 100%;
+}
+
+.add-textarea {
+  resize: vertical;
+  line-height: 1.4;
+}
+
+.add-mono {
+  font-family: var(--mono);
+  font-size: 12px;
+}
+
+.add-hint {
+  margin: 2px 0 0;
+  font-size: 11px;
+  color: var(--text-faint);
+  line-height: 1.4;
+}
+
+/* The selected-node panel reuses .add-field for its editable inputs. */
+.node-panel-body .add-field {
+  margin-bottom: 12px;
+}
