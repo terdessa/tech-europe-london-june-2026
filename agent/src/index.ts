@@ -33,17 +33,12 @@ app.post("/join", async (req, res) => {
   }
   console.log(`[join] ${CONFIG.agentName} joining ${meetUrl} (meeting ${meetingId}, mode=${CONFIG.meetMode})`);
 
-  try {
-    if (CONFIG.meetMode === "real") {
-      await startRealMeet(meetingId, meetUrl);
-    } else {
-      await startMock(meetingId);
-    }
-    res.json({ status: "joining" } satisfies JoinResponse);
-  } catch (err) {
-    console.error("[join] failed:", (err as Error).message);
-    res.status(500).json({ status: "error", error: (err as Error).message } satisfies JoinResponse);
-  }
+  // Respond immediately — launching Chromium + reaching the Meet lobby takes
+  // several seconds, longer than the launcher's HTTP timeout. Do the join in the
+  // background so the dashboard gets a fast "joining" and the host just admits Flash.
+  const start = CONFIG.meetMode === "real" ? startRealMeet(meetingId, meetUrl) : startMock(meetingId);
+  start.catch((err) => console.error("[join] failed:", (err as Error).message));
+  res.json({ status: "joining" } satisfies JoinResponse);
 });
 
 async function startMock(meetingId: string): Promise<void> {

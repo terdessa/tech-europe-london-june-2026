@@ -86,17 +86,34 @@ export class MeetBot {
       "--use-fake-device-for-media-stream",
       "--autoplay-policy=no-user-gesture-required",
       "--disable-blink-features=AutomationControlled",
+      // Stability: "--no-sandbox"/"--disable-dev-shm-usage" stop the "Page crashed"
+      // seen on small /dev/shm; "--disable-gpu" avoids GPU-process crashes headful.
+      "--no-sandbox",
+      "--disable-dev-shm-usage",
+      "--disable-gpu",
     ];
+    // ignoreHTTPSErrors fixes the intermittent ERR_CERT_AUTHORITY_INVALID; granting
+    // media permissions up-front means no permission wall before "Ask to join".
+    const ctxOpts = {
+      viewport: null,
+      ignoreHTTPSErrors: true,
+      permissions: ["microphone", "camera"],
+    };
 
     if (CONFIG.userDataDir && CONFIG.userDataDir.trim()) {
       // Persistent profile (use a DEDICATED Flash Google account here, not your own).
-      this.ctx = await chromium.launchPersistentContext(CONFIG.userDataDir, { headless: false, viewport: null, args });
+      this.ctx = await chromium.launchPersistentContext(CONFIG.userDataDir, { headless: false, args, ...ctxOpts });
       this.page = this.ctx.pages()[0] ?? (await this.ctx.newPage());
     } else {
       // Ephemeral guest browser -> Flash is a separate participant.
       this.browser = await chromium.launch({ headless: false, args });
-      this.ctx = await this.browser.newContext({ viewport: null });
+      this.ctx = await this.browser.newContext(ctxOpts);
       this.page = await this.ctx.newPage();
+    }
+    try {
+      await this.ctx.grantPermissions(["microphone", "camera"], { origin: "https://meet.google.com" });
+    } catch {
+      /* best-effort */
     }
 
     await this.ctx.exposeBinding("__flashAudio", (_src, b64: string) => this.audioHandler?.(b64));
@@ -104,27 +121,62 @@ export class MeetBot {
     await this.ctx.addInitScript(MIC_SCRIPT);
 
     const page = this.page;
-    await page.goto(meetUrl, { waitUntil: "load", timeout: 60000 });
+    // Navigate with one retry — the cert/crash errors we saw are transient.
+    let navigated = false;
+    for (let attempt = 1; attempt <= 2 && !navigated; attempt += 1) {
+      try {
+        await page.goto(meetUrl, { waitUntil: "domcontentloaded", timeout: 90000 });
+        navigated = true;
+      } catch (err) {
+        console.warn(`[meet] navigation attempt ${attempt} failed:`, (err as Error).message);
+        if (attempt === 2) throw err;
+        await page.waitForTimeout(1500);
+      }
+    }
 
     // Guest name prompt.
     try {
       const nameInput = page.getByPlaceholder(/your name/i);
-      if (await nameInput.isVisible({ timeout: 4000 })) await nameInput.fill(CONFIG.displayName);
+      if (await nameInput.isVisible({ timeout: 8000 })) await nameInput.fill(CONFIG.displayName);
     } catch {
       /* signed-in profile: no name prompt */
     }
 
-    // Auto-join.
-    for (const label of [/ask to join/i, /join now/i]) {
+    // Turn the camera + mic OFF on the green room so there's no device wall
+    // (Flash speaks via the injected mic later; we unmute then).
+    for (const label of [/turn off camera/i, /turn off microphone/i]) {
       try {
         const btn = page.getByRole("button", { name: label });
-        if (await btn.isVisible({ timeout: 4000 })) {
+        if (await btn.isVisible({ timeout: 1500 })) await btn.click();
+      } catch {
+        /* already off / not present */
+      }
+    }
+
+    // Dismiss any "continue without microphone and camera" interstitial.
+    try {
+      const cont = page.getByRole("button", { name: /continue without|got it|dismiss/i });
+      if (await cont.isVisible({ timeout: 1500 })) await cont.click();
+    } catch {
+      /* none */
+    }
+
+    // Click whichever join control is present.
+    let asked = false;
+    for (const label of [/ask to join/i, /join now/i, /^join$/i]) {
+      try {
+        const btn = page.getByRole("button", { name: label });
+        if (await btn.isVisible({ timeout: 6000 })) {
           await btn.click();
+          asked = true;
           break;
         }
       } catch {
         /* try next */
       }
+    }
+    if (!asked) {
+      console.warn('[meet] no join button found — check the open browser (sign-in wall or "Ask to join" not shown).');
     }
     console.log(`[meet] "${CONFIG.displayName}" is asking to join — Admit it from your meeting.`);
   }
