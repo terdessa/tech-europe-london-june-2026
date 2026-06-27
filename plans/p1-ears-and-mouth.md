@@ -27,12 +27,19 @@ You own the riskiest piece (live audio), so you build it in layers and always ke
 
 ## Phase 1 — Audio in, transcript out (no others needed)
 1. Stand up a LiveKit room; join it from a second browser tab (you = test speaker).
-2. Connect your agent as a participant; subscribe to remote audio tracks.
-3. Pipe audio → **SLNG STT** (streaming if available, else chunked). Produce `{ speaker, ts, text }`.
+2. Connect your agent as a participant; **subscribe to each remote participant's audio track _separately_.**
+3. Run **SLNG STT per track**. Produce `{ speaker, ts, text }` where **`speaker` = that track's participant identity/name** (see "Speaker attribution" below).
 4. Print utterances to console. **Don't POST yet** — just prove transcription.
 5. **Reuse first:** start from the LiveKit Agents starter + SLNG STT example; port, don't hand-roll.
 
-**Done when:** you talk in the room and see accurate transcript lines in your console.
+**Done when:** two people talk from two tabs and you see correctly-attributed lines ("Alice: …", "Bob: …") in your console.
+
+## Speaker attribution (no diarization needed — read this)
+We do **not** do voiceprint/biometric recognition or diarization. Each participant in LiveKit publishes **their own audio track tagged with their identity**, so:
+- one STT stream **per track** → label every utterance with that participant's name.
+- **crosstalk is handled for free** (separate streams), and we get accurate who-said-what.
+- Google Meet's Media API exposes per-participant streams the same way; our own LiveKit room (the fallback) is native.
+- ⚠️ The only setup that would need diarization is **everyone on one shared mic** — so for the demo, **each person joins from their own device/tab.**
 
 ## Phase 2 — Wake-word + request capture
 1. On each transcript line, check for the wake phrase (`hey rahid`). Use a fuzzy match (STT will mishear).

@@ -35,7 +35,7 @@ POST-MEETING  (meeting ends)
 | ID | Component | Owner | Responsibility |
 |---|---|---|---|
 | P1 | **Agent runtime** | Ears & Mouth | Join LiveKit room, capture audio, SLNG STT→utterances, wake-word, SLNG TTS of responses back into the call |
-| P2 | **Retrieval & Context service** | Retrieval | A plain store of raw utterances/sources **+ Superlinked as the semantic layer** (embeddings, semantic search, reranking, doc parsing/OCR). HTTP API: ingest, retrieve, dump transcript. *Superlinked is the inference engine, not the database.* |
+| P2 | **Retrieval & Context service** | Retrieval | A **persistent store (SQLite)** of raw utterances/sources = the full conversation record, **+ Superlinked as the semantic layer** (embeddings, semantic search, reranking, doc parsing/OCR). HTTP API: ingest, retrieve, dump transcript. *Superlinked is the inference engine, not the database.* |
 | P3 | **Brain (n8n + Gemini)** | Brain | n8n webhooks for the live agent flow + post-meeting pipeline; Gemini reasoning + diagram-code generation; events feed for the UI |
 | P4 | **Web app** | Face | Pre-meeting upload, live pop-up card + diagram render (Mermaid), post-meeting Q&A app, Aikido |
 | — | **Demo & story** | Demo & Story | Pitch, script, Loom, slides, README, submission |
@@ -117,6 +117,12 @@ POST {N8N_WEBHOOK_BASE}/ask        { "meetingId": "m_123", "question": "what sho
 
 - **Passive:** every utterance is transcribed + POSTed to `/ingest`. Rahid is silent.
 - **Active:** transcript line starts with the wake phrase (`hey rahid`, case-insensitive, fuzzy). Everything after it (until ~1.5s silence) = `requestText` → POST `/agent` → speak the `text` via TTS; diagram (if any) shows in the app.
+
+## 4b. Speaker attribution & persistence
+
+**Who said what — no diarization/voiceprint ML.** Each participant in LiveKit publishes their **own audio track tagged with their identity**. P1 subscribes **per track**, runs **one SLNG STT stream per track**, and labels each utterance with that participant's name. Crosstalk is handled for free. (Google Meet's Media API exposes per-participant streams the same way; our own LiveKit room is native.) ⚠️ Everyone must join from **their own device/tab** — a single shared mic is the only case that would need diarization, so avoid it.
+
+**Keeping the whole conversation.** P2 appends every utterance to a **persistent SQLite table** (`meetingId, speaker, ts, text`). *That table is the source of truth* for the full transcript and survives restarts. Superlinked indexes the same utterances for semantic search but is **not** the store — never rely on the vector index to hold the raw text.
 
 ## 5. Diagrams (P3 generates code, P4 renders)
 

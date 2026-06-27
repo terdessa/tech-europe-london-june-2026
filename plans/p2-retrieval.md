@@ -34,7 +34,7 @@ Give Rahid **recall.** Ingest prep docs before the meeting and every utterance d
 3. Decide granularity: one utterance = one record; docs split into ~200-token chunks (or let Superlinked's parser chunk them).
 
 ## Phase 1 — Standalone service against a sample (no others needed)
-1. Build the HTTP service + the plain store (Node/TS or Python).
+1. Build the HTTP service + a **persistent store — use SQLite**: one table `utterances(meetingId, speaker, ts, text)` (+ a `sources` table). This table **is the full conversation record** (survives restarts); Superlinked only indexes it for search. `GET /transcript` = `SELECT * WHERE meetingId ORDER BY ts`. (Node/TS or Python.)
 2. Load `sample-transcript.json` (commit one with ~20 lines incl. the budget example).
 3. Implement `GET /retrieve` with a **dumb keyword baseline** first so the API works end-to-end.
 
