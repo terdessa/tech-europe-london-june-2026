@@ -91,6 +91,10 @@ export class MeetBot {
       "--use-fake-device-for-media-stream",
       "--autoplay-policy=no-user-gesture-required",
       "--disable-blink-features=AutomationControlled",
+      // Mute the bot tab's speaker output so the host doesn't hear the meeting
+      // echo back from Flash's browser. This silences local PLAYBACK only — the
+      // WebRTC audio we capture for STT and the mic we inject (TTS) are unaffected.
+      "--mute-audio",
     ];
     // Linux/Docker stability flags ONLY — on macOS "--no-sandbox" + "--disable-gpu"
     // crash the renderer with "Aw, Snap! (error code 5)". The sandbox + GPU are
