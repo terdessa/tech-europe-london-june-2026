@@ -125,6 +125,21 @@ export class MeetBot {
     }
   }
 
+  /** Best-effort: is someone presenting / sharing a screen right now? */
+  async isPresenting(): Promise<boolean> {
+    const page = this.page;
+    if (!page) return false;
+    try {
+      return await page.evaluate(() => {
+        if (document.querySelector('[aria-label*="presentation" i], [aria-label*="is presenting" i]')) return true;
+        const t = document.body?.innerText ?? "";
+        return /presenting to|is presenting|you are presenting|stop presenting/i.test(t);
+      });
+    } catch {
+      return false;
+    }
+  }
+
   /** Screenshot the meeting tab (captures a shared screen) as base64 JPEG. */
   async screenshot(): Promise<string | null> {
     const page = this.page;

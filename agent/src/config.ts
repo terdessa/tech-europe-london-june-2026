@@ -21,8 +21,12 @@ export const CONFIG = {
   slngApiKey: process.env.SLNG_API_KEY ?? "",
   slngTtsUrl: process.env.SLNG_TTS_URL ?? "",
 
-  /** Screen capture (eyes). When on, "Hey Flash …screen…" describes the shared screen. */
+  /** Screen capture (eyes). When on, Flash passively watches shared screens + answers screen questions. */
   screenCapture: (process.env.SCREEN_CAPTURE ?? "off").toLowerCase() === "on",
+  /** How often (ms) the passive screen watcher samples the shared screen. */
+  screenIntervalMs: Number(process.env.SCREEN_INTERVAL_MS ?? 12000),
+  /** Capture every interval regardless of presentation detection (use if auto-detect misses). */
+  screenWatchAlways: (process.env.SCREEN_WATCH_ALWAYS ?? "off").toLowerCase() === "on",
   /** Optional direct Gemini for screen description when there is no P3 backend. */
   geminiApiKey: process.env.GEMINI_API_KEY ?? "",
   geminiModel: process.env.GEMINI_MODEL ?? "gemini-2.5-flash",

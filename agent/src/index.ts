@@ -14,6 +14,7 @@ app.use(express.json());
 const speaker = createSpeaker(); // VOICE=console | local | slng
 let source: AudioSource | null = null;
 let bot: MeetBot | null = null;
+let screenTimer: NodeJS.Timeout | null = null;
 
 const nowSec = () => Math.floor(Date.now() / 1000);
 
@@ -52,6 +53,10 @@ async function startMock(meetingId: string): Promise<void> {
 }
 
 async function startRealMeet(meetingId: string, meetUrl: string): Promise<void> {
+  if (screenTimer) {
+    clearInterval(screenTimer);
+    screenTimer = null;
+  }
   await bot?.close();
   bot = new MeetBot();
   await bot.join(meetUrl);
@@ -63,24 +68,45 @@ async function startRealMeet(meetingId: string, meetUrl: string): Promise<void> 
     postToMeeting: (t) => activeBot.postChat(t),
   };
 
-  const describeScreen = CONFIG.screenCapture
-    ? async (): Promise<string | null> => {
-        const img = await activeBot.screenshot();
-        if (!img) return null;
-        const desc = await visionDescribe({ meetingId, imageBase64: img, ts: nowSec(), sharedBy: "Screen" });
-        if (desc) {
-          await ingest({ meetingId, speaker: "Screen", ts: nowSec(), text: desc, source: "screen" });
-        }
-        return desc;
-      }
-    : undefined;
+  // Capture the shared screen, describe it, ingest if it changed. Returns the description.
+  let lastScreenDesc = "";
+  const captureScreen = async (): Promise<string | null> => {
+    const img = await activeBot.screenshot();
+    if (!img) return null;
+    const desc = await visionDescribe({ meetingId, imageBase64: img, ts: nowSec(), sharedBy: "Screen" });
+    if (desc && desc !== lastScreenDesc) {
+      lastScreenDesc = desc;
+      await ingest({ meetingId, speaker: "Screen", ts: nowSec(), text: desc, source: "screen" });
+      console.log("[screen]", desc.slice(0, 100));
+    }
+    return desc;
+  };
 
-  const handle = createPipeline({ responder, describeScreen });
+  const handle = createPipeline({
+    responder,
+    describeScreen: CONFIG.screenCapture ? () => captureScreen() : undefined,
+  });
   activeBot.startCaptions((line) => {
     handle({ meetingId, speaker: line.speaker, ts: nowSec(), text: line.text } as Utterance).catch((e) =>
       console.error("[pipeline] error:", (e as Error).message),
     );
   });
+
+  // PASSIVE screen watching: auto-capture whenever someone is presenting (no wake-word needed).
+  if (CONFIG.screenCapture) {
+    if (!CONFIG.geminiApiKey && !CONFIG.n8nWebhookBase) {
+      console.warn("[screen] SCREEN_CAPTURE=on but no GEMINI_API_KEY — the screen can't be described.");
+    }
+    screenTimer = setInterval(() => {
+      void (async () => {
+        try {
+          if (CONFIG.screenWatchAlways || (await activeBot.isPresenting())) await captureScreen();
+        } catch {
+          /* page busy / navigating */
+        }
+      })();
+    }, CONFIG.screenIntervalMs);
+  }
 }
 
 app.listen(CONFIG.port, () => {
