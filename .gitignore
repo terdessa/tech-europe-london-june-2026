@@ -1,0 +1,31 @@
+# secrets
+.env
+.env.local
+*.local
+
+# node
+node_modules/
+dist/
+build/
+*.log
+npm-debug.log*
+
+# python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# data / db
+*.sqlite
+*.sqlite3
+*.db
+data/context/
+
+# tts audio output
+data/tts/
+
+# os/editor
+.DS_Store
+.idea/
+.vscode/

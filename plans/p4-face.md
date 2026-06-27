@@ -5,9 +5,9 @@
 
 ## Your mission
 
-You are Rahid's **face.** The meeting itself is where the live action happens (Rahid talks + posts a diagram link in the Meet chat), so your web app is intentionally small — **one React app, three states**:
-1. **Launcher (`/`)** — paste the **Google Meet link** + upload prep docs → "Send Rahid."
-2. **Workspace (`/m/:meetingId`)** — the **full live screen** showing everything: the running **conversation/transcript**, Rahid's **chat answers**, the **diagrams/graphs** (all visuals live here), and a **meeting actions + data** panel. *After:* same page becomes summary + decisions + action items + **Q&A** over the full record.
+You are Flash's **face.** The meeting itself is where the live action happens (Flash talks + posts a diagram link in the Meet chat), so your web app is intentionally small — **one React app, three states**:
+1. **Launcher (`/`)** — paste the **Google Meet link** + upload prep docs → "Send Flash."
+2. **Workspace (`/m/:meetingId`)** — the **full live screen** showing everything: the running **conversation/transcript**, Flash's **chat answers**, the **diagrams/graphs** (all visuals live here), and a **meeting actions + data** panel. *After:* same page becomes summary + decisions + action items + **Q&A** over the full record.
 3. (All visuals render inside the workspace; no separate dashboard. Meet stays voice + text-chat only.)
 
 You also render diagrams (editable) and run the Aikido scan.
@@ -38,18 +38,18 @@ You also render diagrams (editable) and run the Aikido scan.
 **Done when:** the budget diagram renders and updates as you edit the code.
 
 ## Phase 2 — Workspace page (against mocks)
-1. Route `/m/:meetingId`. Poll **`/events`** (Rahid's answers + diagrams) **and `/transcript`** (live conversation). Use `sample-events.json` + `sample-transcript.json`.
-2. One live screen, four areas: **live conversation/transcript** (speaker-labeled) · **Rahid's answer cards** (text + sources) · **diagrams/graphs** rendered (the visual surface) · **meeting actions + data** panel.
+1. Route `/m/:meetingId`. Poll **`/events`** (Flash's answers + diagrams) **and `/transcript`** (live conversation). Use `sample-events.json` + `sample-transcript.json`.
+2. One live screen, four areas: **live conversation/transcript** (speaker-labeled) · **Flash's answer cards** (text + sources) · **diagrams/graphs** rendered (the visual surface) · **meeting actions + data** panel.
 3. After the meeting: the same page shows summary / decisions / action items + the Q&A box.
 
 **Done when:** mock transcript + events fill all four areas on `/m/:meetingId` live.
 
 ## Phase 3 — Launcher (pre-meeting)
 1. Generate a `meetingId`. Form: **paste the Google Meet link** + paste text / add links / (optional) upload a file → `POST /sources` (§3.2).
-2. **"Send Rahid"** → `POST {AGENT_URL}/join { meetingId, meetUrl }` (§3.8) to dispatch the bot.
-3. Show "context loaded: N sources" + "Rahid is joining…" then link to `/m/:meetingId`.
+2. **"Send Flash"** → `POST {AGENT_URL}/join { meetingId, meetUrl }` (§3.8) to dispatch the bot.
+3. Show "context loaded: N sources" + "Flash is joining…" then link to `/m/:meetingId`.
 
-**Done when:** pasting a Meet link + prep dispatches the bot and grounds Rahid's later answers (verify with P1/P2/P3).
+**Done when:** pasting a Meet link + prep dispatches the bot and grounds Flash's later answers (verify with P1/P2/P3).
 
 ## Phase 4 — Post-meeting app (the second "use" of the context)
 1. "Meeting ended" → call `/finalize` → show **summary + decisions + action items + diagrams**.

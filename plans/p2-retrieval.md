@@ -14,7 +14,7 @@ Superlinked is an **open-source inference engine for AI agents** — *not* a dat
 
 ## Your mission
 
-Give Rahid **recall.** Ingest prep docs before the meeting and every utterance during it; make them semantically searchable; answer **"what's relevant to this query?"** for the live Brain and the post-meeting Q&A. Good retrieval = grounded answers = we win the Superlinked prize.
+Give Flash **recall.** Ingest prep docs before the meeting and every utterance during it; make them semantically searchable; answer **"what's relevant to this query?"** for the live Brain and the post-meeting Q&A. Good retrieval = grounded answers = we win the Superlinked prize.
 
 ## What you own
 - A small **Retrieval & Context service** (HTTP API) = plain store **+ Superlinked** for the semantic work.

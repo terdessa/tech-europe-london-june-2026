@@ -1,4 +1,4 @@
-# Rahid — Architecture
+# Flash — Architecture
 
 > Read with [`CLAUDE.md`](./CLAUDE.md). This file is the **single source of truth for how the pieces fit and talk to each other.** Freeze the contracts below first; then everyone builds against mocks.
 
@@ -8,14 +8,14 @@
 PRE-MEETING
   Host uploads docs/links ──▶ [P2] Superlinked index (grounding sources)
 
-LIVE MEETING  (Google Meet — Rahid bot joins via the pasted link; LiveKit-room fallback)
-  Everyone's audio ──Meet bot──▶ [P1] Agent runtime
+LIVE MEETING  (Google Meet — Flash bot joins via the pasted link; LiveKit-room fallback)
+  Everyone's audio + screen-share ──Meet bot──▶ [P1] Agent runtime
      │
      │ ── PASSIVE (always on, never interrupts) ──
-     │      SLNG STT ──▶ utterance {speaker, ts, text}
-     │                      └──POST /ingest──▶ [P2] Context store + Superlinked
+     │      voice:  SLNG STT ──▶ utterance {speaker, ts, text} ──POST /ingest──▶ [P2]
+     │      screen: frame ──POST /vision──▶ [P3 Gemini] ──▶ description ──POST /ingest (source:"screen")──▶ [P2]
      │
-     │ ── ACTIVE ("Hey Rahid …") ──
+     │ ── ACTIVE ("Hey Flash …") ──
             wake-word detected ──▶ capture requestText
               ──POST /agent──▶ [P3] n8n workflow
                                    ├─ GET /retrieve ──▶ [P2]
@@ -34,18 +34,19 @@ POST-MEETING  (meeting ends)
 
 | Interaction | Surface |
 |---|---|
-| Rahid listening + **speaking** (voice, incl. "Hey Rahid, repeat") | **In the meeting** (SLNG STT/TTS) |
+| Flash listening + **speaking** (voice, incl. "Hey Flash, repeat") | **In the meeting** (SLNG STT/TTS) |
 | Text chat | **In the meeting chat** |
-| **Diagrams / graphs (all visuals)** | **On the web page** (workspace `/m/:meetingId`) |
+| **Screen shares** (what's shown on screen) | **Captured from the meeting** → Gemini vision → added to context (input) |
+| **Diagrams / graphs (all visuals Flash produces)** | **On the web page** (workspace `/m/:meetingId`) |
 | Live conversation/transcript, meeting history, actions + data, post-meeting Q&A | **On the web page** (one live screen, then the after-meeting workspace) |
 
 ## 2. Components & ownership
 
 | ID | Component | Owner | Responsibility |
 |---|---|---|---|
-| P1 | **Agent runtime** | Ears & Mouth | Join the **Google Meet by link** (managed bot API / Meet Media API / headless; LiveKit-room fallback), capture speaker-attributed transcript, wake-word, **SLNG TTS** of responses back into the call + post diagram link in Meet chat |
+| P1 | **Agent runtime** | Ears, Eyes & Mouth | Join the **Google Meet by link** (managed bot API / Meet Media API / headless; LiveKit-room fallback), capture speaker-attributed transcript, **capture screen-share frames** (→ P3 `/vision` → context), wake-word, **SLNG TTS** of responses back into the call |
 | P2 | **Retrieval & Context service** | Retrieval | A **persistent store (SQLite)** of raw utterances/sources = the full conversation record, **+ Superlinked as the semantic layer** (embeddings, semantic search, reranking, doc parsing/OCR). HTTP API: ingest, retrieve, dump transcript. *Superlinked is the inference engine, not the database.* |
-| P3 | **Brain (n8n + Gemini)** | Brain | n8n webhooks for the live agent flow + post-meeting pipeline; Gemini reasoning + diagram-code generation; events feed for the UI |
+| P3 | **Brain (n8n + Gemini)** | Brain | n8n webhooks for the live agent flow + post-meeting pipeline; Gemini reasoning + diagram-code generation **+ screen-frame vision (`/vision`)**; events feed for the UI |
 | P4 | **Web app** | Face | Pre-meeting upload, live pop-up card + diagram render (Mermaid), post-meeting Q&A app, Aikido |
 | — | **Demo & story** | Demo & Story | Pitch, script, Loom, slides, README, submission |
 
@@ -60,7 +61,8 @@ Everything is correlated by a **`meetingId`** (a string created when a session s
 POST {CONTEXT_SERVICE_URL}/ingest
 ```
 ```jsonc
-{ "meetingId": "m_123", "speaker": "Alice", "ts": 1719500000, "text": "we have 5000 budget" }
+{ "meetingId": "m_123", "speaker": "Alice", "ts": 1719500000, "text": "we have 5000 budget", "source": "live" }
+// source: "live" (spoken, default) | "screen" (a description of a shared screen, produced via /vision)
 ```
 
 ### 3.2 Pre-meeting sources — P4 ▶ P2
@@ -128,16 +130,29 @@ POST {N8N_WEBHOOK_BASE}/ask        { "meetingId": "m_123", "question": "what sho
 // -> { "answer": "...", "sources": ["..."] }
 ```
 
+### 3.9 Screen-frame vision — P1 ▶ P3
+```http
+POST {N8N_WEBHOOK_BASE}/vision
+```
+```jsonc
+// request
+{ "meetingId": "m_123", "imageBase64": "<jpeg base64>", "ts": 1719500030, "sharedBy": "Alice" }
+// response
+{ "description": "Budget table — total 5000, design 500, ads 1000, remaining 3500",
+  "data": {} }   // optional structured extraction
+```
+> P1 then **ingests** `description` into P2 as an utterance with `speaker: "Alice (screen)"` and `source: "screen"` — so screen content is searchable just like speech.
+
 ## 4. Wake-word & modes (P1)
 
-- **Passive:** every utterance is transcribed + POSTed to `/ingest`. Rahid is silent.
-- **Active:** transcript line starts with the wake phrase (`hey rahid`, case-insensitive, fuzzy). Everything after it (until ~1.5s silence) = `requestText` → POST `/agent` → speak the `text` via TTS; diagram (if any) shows in the app.
+- **Passive:** every utterance is transcribed + POSTed to `/ingest`. Flash is silent.
+- **Active:** transcript line starts with the wake phrase (`hey flash`, case-insensitive, fuzzy). Everything after it (until ~1.5s silence) = `requestText` → POST `/agent` → speak the `text` via TTS; diagram (if any) shows in the app.
 
 ## 4b. Speaker attribution & persistence
 
 **Who said what — no diarization/voiceprint ML.** Depends on the join approach (see `plans/p1`):
 - **Meet Media API / LiveKit room:** per-participant audio tracks → **SLNG STT per stream** → speaker = participant identity (cleanest).
-- **Managed bot API / headless:** take the **speaker-labeled transcript from Meet live captions / the bot service**; **SLNG still does Rahid's TTS** (stays a real partner).
+- **Managed bot API / headless:** take the **speaker-labeled transcript from Meet live captions / the bot service**; **SLNG still does Flash's TTS** (stays a real partner).
 
 Crosstalk is handled either way. ⚠️ Everyone joins from **their own device** — a single shared mic is the only case that would need diarization, so avoid it.
 
@@ -186,7 +201,7 @@ MEET_BOT_API_KEY=
 
 | Risk | Mitigation |
 |---|---|
-| LiveKit join / Meet auth fights us | Build core (diagram + post-meeting) first; fallback = Rahid in our own LiveKit web UI instead of Google Meet |
+| LiveKit join / Meet auth fights us | Build core (diagram + post-meeting) first; fallback = Flash in our own LiveKit web UI instead of Google Meet |
 | Live voice latency (n8n in the path) | Acceptable ~1–2s; if too slow, move live path to P1 code, keep n8n for post-meeting |
 | SLNG STT accuracy on crosstalk | Push-to-talk-ish wake word; pre-test mics; keep demo lines clear |
 | Superlinked access/key | Get key from `@filipmakraduli` at opening; fallback = stuff context into Gemini behind same `/retrieve` |
