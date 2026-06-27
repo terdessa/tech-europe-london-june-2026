@@ -24,6 +24,29 @@ Listens on `PORT` (default `3000`). Other services should read `CONTEXT_SERVICE_
 
 ---
 
+## 1b. Current limitations (read before merging)
+
+P2 ships with three intentional gaps. **An incoming merge that depends on any of these will fail at runtime unless it either implements the trigger fix (see §11) or documents a workaround in its own track.** This callout exists so you don't have to read 460 lines to notice them.
+
+| Gap | Effect today | Trigger to close | Effort | See |
+|---|---|---|---|---|
+| **PDF text extraction** | `POST /sources` with `type:"pdf"` is accepted by the schema but `parseDocument` throws a clear TODO error — **no chunks created, source row stored with `rawText=null`**. | Add `pdfjs-dist`, decode bytes, hand text to the existing chunker. | ~40 lines + 1 dep | §11 #1 |
+| **Image → P3 `/vision` wiring** | `POST /sources` with `type:"image"` is accepted but `parseDocument` throws the same TODO. P2 currently has no `visionClient.ts`. | P3 publishes its `POST /vision` endpoint per ARCHITECTURE §3.9, then P2 adds a thin HTTP client. | ~25 lines + new file | §11 #2 |
+| **File-bytes transport on `/sources`** | The `SourceItem` union for `pdf`/`image` accepts `url` and `path` but **not raw bytes**. P4 cannot send a local file from a `<input type="file">` over JSON yet. | Add optional `data?: string` (base64) to the pdf/image variants; decode in route handler. | 6 lines in `contracts.ts`, ~20 in `sources.ts` | §11 #3 |
+
+**What unambiguously works without closing any of the gaps:**
+
+- `POST /sources  { "items":[{"type":"doc",  "content":"..."}] }`  ✅ pasted text / notes / briefs
+- `POST /sources  { "items":[{"type":"link", "url":"..."}] }`      ✅ URLs (Google Docs, Notion, any HTML/text page)
+- `POST /ingest`                                                    ✅ live utterances **and** screen-source descriptions (`source:"screen"`)
+- `GET  /retrieve` / `GET /transcript`                              ✅ semantic + keyword retrieval, full ordered transcript
+
+The four endpoints above cover the entire demo money-shot (live transcription → grounded diagram → post-meeting Q&A) **without** needing file uploads. The three gaps above only block "drag a PDF/image from your desktop into the launcher" — a useful product feature but **not** on the demo critical path.
+
+If a peer track (P4 especially) ships file uploads expecting `pdf`/`image` to work end-to-end, the merger MUST close gaps #1 and #3 in P2 first, or coordinate with the P4 owner to revert the upload UI until P2 catches up. Do not silently change `parseDocument` to a no-op — that would silently drop user uploads.
+
+---
+
 ## 2. Files owned by P2
 
 Anything in this list is "mine" — if a merge needs to touch one of these, do the merge inside that file and ping me before changing public behaviour.
