@@ -1,8 +1,8 @@
 {
-  "name": "rahid-retrieval",
+  "name": "flash-retrieval",
   "version": "0.1.0",
   "private": true,
-  "description": "Rahid P2 — Retrieval & Context service (SQLite source-of-truth + Superlinked SIE semantic layer).",
+  "description": "Flash P2 — Retrieval & Context service (SQLite source-of-truth + Superlinked SIE semantic layer).",
   "type": "module",
   "engines": {
     "node": ">=18.17"

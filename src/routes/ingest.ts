@@ -43,6 +43,10 @@ export const handleIngest = async (req: Request, res: Response): Promise<void> =
   const speaker = requireNonEmptyString(body.speaker) ? body.speaker : null;
   const text = body.text.trim();
   const meetingId = body.meetingId;
+  // ARCHITECTURE §3.1 / §3.9: defaults to "live" (spoken). "screen" is the
+  // ingest of a screen-frame description from P3 /vision. Unknown strings
+  // are accepted (forward-compatible) but logged.
+  const source = requireNonEmptyString(body.source) ? body.source : "live";
 
   const utteranceId = newUtteranceId();
   const chunkId = newChunkId();
@@ -53,7 +57,7 @@ export const handleIngest = async (req: Request, res: Response): Promise<void> =
     speaker,
     ts,
     text,
-    source: "live",
+    source,
     createdAt: now,
   });
   insertChunk({
@@ -64,7 +68,7 @@ export const handleIngest = async (req: Request, res: Response): Promise<void> =
     speaker,
     ts,
     text,
-    source: "live",
+    source,
     chunkIndex: 0,
     createdAt: now,
   });
@@ -78,7 +82,7 @@ export const handleIngest = async (req: Request, res: Response): Promise<void> =
       speaker: speaker ?? undefined,
       ts,
       text,
-      source: "live",
+      source,
     })
       .then(({ externalId, vector }) => {
         upsertSuperlinkedIndex({

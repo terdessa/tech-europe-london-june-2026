@@ -1,7 +1,7 @@
 {
   "meetingId": "m_demo",
   "utterances": [
-    { "speaker": "Maya",  "ts": 1719500000, "text": "Welcome everyone. Let's go over where we are on the Rahid build before the demo tonight." },
+    { "speaker": "Maya",  "ts": 1719500000, "text": "Welcome everyone. Let's go over where we are on the Flash build before the demo tonight." },
     { "speaker": "Alex",  "ts": 1719500015, "text": "Sounds good. I'll keep notes as we go." },
     { "speaker": "Maya",  "ts": 1719500030, "text": "Our total budget is 5000 pounds. We already spent 500 on hosting and expect around 1000 for AI APIs." },
     { "speaker": "Alex",  "ts": 1719500050, "text": "So roughly three and a half thousand left to play with. That includes margin for surprise costs." },
@@ -14,7 +14,7 @@
     { "speaker": "Maya",  "ts": 1719500190, "text": "Superlinked should power semantic retrieval and reranking over the transcript and prep docs." },
     { "speaker": "Alex",  "ts": 1719500210, "text": "Yeah, that's the wedge. Keyword search alone won't find paraphrased questions." },
     { "speaker": "Maya",  "ts": 1719500230, "text": "P3 retrieves context from P2, reasons with Gemini, and returns either an answer or Mermaid diagram code." },
-    { "speaker": "Alex",  "ts": 1719500250, "text": "And the wake word is hey rahid, fuzzy match, case-insensitive." },
+    { "speaker": "Alex",  "ts": 1719500250, "text": "And the wake word is hey flash, fuzzy match, case-insensitive." },
     { "speaker": "Maya",  "ts": 1719500270, "text": "P4 renders all visuals on the web workspace and polls the events feed." },
     { "speaker": "Alex",  "ts": 1719500290, "text": "I'll also wire the post-meeting Q&A box on the same page so we don't ship two apps." },
     { "speaker": "Maya",  "ts": 1719500310, "text": "Alex will wire P3 to the retrieval endpoint before the final demo." },

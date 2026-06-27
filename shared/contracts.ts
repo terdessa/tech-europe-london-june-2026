@@ -1,4 +1,4 @@
-// Shared HTTP/JSON contracts between Rahid's services.
+// Shared HTTP/JSON contracts between Flash's services.
 // Source of truth: ARCHITECTURE.md §3. Keep this file in sync with that doc.
 // Other tracks (P1/P3/P4) import these types — do not break them lightly.
 
@@ -7,11 +7,17 @@ export type MeetingId = string;
 // ---------- P2 : Retrieval & Context ----------------------------------------
 
 // §3.1  P1 ▶ P2 — one live utterance.
+// `source` is optional, defaults to "live" (spoken). Per ARCHITECTURE §3.9,
+// P1 also ingests screen-frame descriptions returned by P3's /vision with
+// `source: "screen"` so they're searchable alongside speech.
+export type UtteranceSource = "live" | "screen";
+
 export type IngestRequest = {
   meetingId: MeetingId;
   speaker?: string;
   ts?: number; // unix seconds (or ms — service normalises internally)
   text: string;
+  source?: UtteranceSource | string;
 };
 
 export type IngestResponse = {

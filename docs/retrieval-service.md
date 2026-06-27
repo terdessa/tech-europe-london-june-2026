@@ -1,12 +1,13 @@
-# Rahid P2 — Retrieval & Context Service
+# Flash P2 — Retrieval & Context Service
 
-This is **P2** in the Rahid architecture (`ARCHITECTURE.md` §2 / §3). It is Rahid's recall: it ingests live utterances and prep documents, stores them durably in SQLite, and uses **Superlinked** (specifically the Superlinked Inference Engine — **SIE**) as the semantic layer for embedding, search, and reranking on top of that store.
+This is **P2** in the Flash architecture (`ARCHITECTURE.md` §2 / §3). It is Flash's recall: it ingests live utterances **and screen-share descriptions** and prep documents, stores them durably in SQLite, and uses **Superlinked** (specifically the Superlinked Inference Engine — **SIE**) as the semantic layer for embedding, search, and reranking on top of that store.
 
 ## 1. What P2 does
 
-- **Listens to the meeting in real time.** P1 (Ears & Mouth) POSTs each utterance to `POST /ingest` as soon as it is transcribed.
+- **Listens to the meeting in real time.** P1 (Ears, Eyes & Mouth) POSTs each utterance to `POST /ingest` as soon as it is transcribed (`source: "live"`, the default).
+- **Sees the meeting too.** P1 also captures screen-share frames, sends them to P3 `/vision` (Gemini), then POSTs the returned description back to `POST /ingest` with `source: "screen"` and `speaker: "<name> (screen)"`. Screen content becomes searchable alongside speech (ARCHITECTURE §3.9).
 - **Loads prep context.** P4 (Face/launcher) POSTs every prep doc, link, PDF, or image to `POST /sources` before the meeting starts.
-- **Serves grounded recall.** P3 (Brain/n8n) calls `GET /retrieve` whenever Rahid needs to answer a question or generate a diagram. It returns the top-k most relevant chunks for the query, scoped to the meeting.
+- **Serves grounded recall.** P3 (Brain/n8n) calls `GET /retrieve` whenever Flash needs to answer a question or generate a diagram. It returns the top-k most relevant chunks for the query, scoped to the meeting.
 - **Serves the full transcript.** P3 (post-meeting `/finalize`) and P4 (post-meeting Q&A) call `GET /transcript` to read the whole conversation in order.
 
 ## 2. SQLite as source of truth
@@ -96,10 +97,15 @@ curl -X POST http://localhost:3000/ingest \
   -H "Content-Type: application/json" \
   -d '{"meetingId":"m_demo","speaker":"Maya","ts":1719500000,"text":"Our total budget is 5000 pounds. We already spent 500 on hosting and expect around 1000 for AI APIs."}'
 
+# Ingest a screen-frame description (P1 → P3 /vision → P1 → P2)
+curl -X POST http://localhost:3000/ingest \
+  -H "Content-Type: application/json" \
+  -d '{"meetingId":"m_demo","speaker":"Alice (screen)","ts":1719500030,"text":"Budget table — total 5000, design 500, ads 1000, remaining 3500","source":"screen"}'
+
 # Load prep docs (P4 → P2)
 curl -X POST http://localhost:3000/sources \
   -H "Content-Type: application/json" \
-  -d '{"meetingId":"m_demo","items":[{"type":"doc","title":"Demo brief","content":"Rahid is an active meeting helper that answers questions and generates diagrams grounded in the meeting context."}]}'
+  -d '{"meetingId":"m_demo","items":[{"type":"doc","title":"Demo brief","content":"Flash is an active meeting helper that answers questions and generates diagrams grounded in the meeting context."}]}'
 
 # Full ordered transcript (P3/P4 → P2)
 curl "http://localhost:3000/transcript?meetingId=m_demo"
@@ -123,7 +129,7 @@ Two queries, side by side, against the same seeded transcript:
 | `budget` | Finds the budget line (literal match) | Also finds the budget line — both work |
 | `how much money is left?` | Misses — the words "left" and "money" aren't in the transcript | Surfaces *"Our total budget is 5000 pounds…"* anyway, ranked top after rerank |
 
-That second query is the wedge: it proves Rahid has **semantic recall**, not just keyword search. The rerank step pushes the budget line above near-misses about hosting costs or "three and a half thousand left to play with" so the answer Rahid gives is grounded in the most relevant chunk.
+That second query is the wedge: it proves Flash has **semantic recall**, not just keyword search. The rerank step pushes the budget line above near-misses about hosting costs or "three and a half thousand left to play with" so the answer Flash gives is grounded in the most relevant chunk.
 
 ## 9. Fallback behaviour
 

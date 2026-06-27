@@ -1,4 +1,4 @@
-// Rahid P2 — Retrieval & Context HTTP service.
+// Flash P2 — Retrieval & Context HTTP service.
 // Endpoints (see ARCHITECTURE.md §3):
 //   POST /ingest      — P1 ▶ P2
 //   POST /sources     — P4 ▶ P2
@@ -24,7 +24,7 @@ app.use(express.json({ limit: "10mb" }));
 app.get("/health", (_req, res) => {
   res.json({
     ok: true,
-    service: "rahid-retrieval",
+    service: "flash-retrieval",
     superlinked: isConfigured() ? "configured" : "mock",
   });
 });
