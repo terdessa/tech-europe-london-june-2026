@@ -106,10 +106,10 @@ function CanvasNodeImpl({ data, selected }: NodeProps) {
         )}
       </div>
 
-      {/* Handles: targets in, sources out */}
-      <Handle type="target" position={Position.Top} style={handleStyle} />
+      {/* Handles aligned to the left→right flow: target in on the left,
+          source out on the right. One of each so edges connect deterministically
+          and never leave from the bottom / arrive from the side. */}
       <Handle type="target" position={Position.Left} style={handleStyle} />
-      <Handle type="source" position={Position.Bottom} style={handleStyle} />
       <Handle type="source" position={Position.Right} style={handleStyle} />
     </div>
   );

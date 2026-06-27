@@ -10,6 +10,8 @@ import {
   MiniMap,
   applyNodeChanges,
   applyEdgeChanges,
+  useReactFlow,
+  MarkerType,
   type Node,
   type Edge,
   type NodeChange,
@@ -20,6 +22,7 @@ import "@xyflow/react/dist/style.css";
 
 import type { Canvas, FlashNode } from "@/lib/canvasTypes";
 import { getNodeStyle } from "@/lib/nodeStyles";
+import { layoutGraph } from "@/lib/autoLayout";
 import CanvasNode from "./CanvasNode";
 import CanvasToolbar from "./CanvasToolbar";
 import SelectedNodePanel from "./SelectedNodePanel";
@@ -48,6 +51,13 @@ function toFlowEdges(canvas: Canvas): Edge[] {
     target: e.target,
     label: e.label,
     data: { ...e.data },
+    type: "smoothstep",
+    markerEnd: { type: MarkerType.ArrowClosed, width: 16, height: 16, color: "#9aa0b4" },
+    style: { stroke: "#b4b8c8", strokeWidth: 1.5 },
+    labelStyle: { fontSize: 9, fill: "#6b7088", fontWeight: 600 },
+    labelBgStyle: { fill: "#ffffff", fillOpacity: 0.85 },
+    labelBgPadding: [3, 1] as [number, number],
+    labelBgBorderRadius: 4,
   }));
 }
 
@@ -61,6 +71,10 @@ function FlashCanvasInner({ meetingId }: { meetingId: string }) {
   const versionRef = useRef<number>(-1);
   const draggingRef = useRef<boolean>(false);
   const seededRef = useRef<boolean>(false);
+  // Positions the user has manually dragged — these stay put across re-layouts.
+  const pinnedRef = useRef<Map<string, { x: number; y: number }>>(new Map());
+  const { fitView } = useReactFlow();
+  const nodeCountRef = useRef<number>(0);
 
   // ---- polling --------------------------------------------------------
   const fetchCanvas = useCallback(async () => {
@@ -84,11 +98,16 @@ function FlashCanvasInner({ meetingId }: { meetingId: string }) {
       }
 
       // Only replace local state when the server version changed and we are
-      // not mid-drag (avoids clobbering an in-flight node move).
+      // not mid-drag (avoids clobbering an in-flight node move). We ignore the
+      // server's rough positions and run dagre for a clean directed layout;
+      // dagre is deterministic so the same graph lays out identically (no jitter)
+      // and user-dragged nodes are kept in place via pinnedRef.
       if (canvas.version !== versionRef.current && !draggingRef.current) {
         versionRef.current = canvas.version;
-        setNodes(toFlowNodes(canvas));
-        setEdges(toFlowEdges(canvas));
+        const flowNodes = toFlowNodes(canvas);
+        const flowEdges = toFlowEdges(canvas);
+        setNodes(layoutGraph(flowNodes, flowEdges, "LR", pinnedRef.current));
+        setEdges(flowEdges);
       }
     } catch {
       // transient network error — next tick retries
@@ -100,6 +119,16 @@ function FlashCanvasInner({ meetingId }: { meetingId: string }) {
     const id = setInterval(fetchCanvas, POLL_MS);
     return () => clearInterval(id);
   }, [fetchCanvas]);
+
+  // Refit the viewport whenever the number of nodes changes (new graph, demo
+  // seed, or a freshly added node) so the whole arrangement stays in view.
+  useEffect(() => {
+    if (nodes.length !== nodeCountRef.current) {
+      nodeCountRef.current = nodes.length;
+      const t = setTimeout(() => fitView({ padding: 0.18, duration: 350 }), 60);
+      return () => clearTimeout(t);
+    }
+  }, [nodes, fitView]);
 
   // ---- change handlers ------------------------------------------------
   const persistMove = useCallback(
@@ -130,7 +159,11 @@ function FlashCanvasInner({ meetingId }: { meetingId: string }) {
         for (const c of changes) {
           if (c.type === "position" && c.dragging === false) {
             const moved = next.find((n) => n.id === c.id);
-            if (moved) persistMove(moved.id, moved.position);
+            if (moved) {
+              // Pin the dragged position so future auto-layouts respect it.
+              pinnedRef.current.set(moved.id, moved.position);
+              persistMove(moved.id, moved.position);
+            }
           }
         }
         return next;
@@ -189,6 +222,12 @@ function FlashCanvasInner({ meetingId }: { meetingId: string }) {
       setBusy(null);
     }
   }, [meetingId, refetch]);
+
+  const onAutoArrange = useCallback(() => {
+    // Forget manual placements and re-run the directed layout from scratch.
+    pinnedRef.current.clear();
+    setNodes(layoutGraph(nodes, edges, "LR"));
+  }, [nodes, edges]);
 
   const onExport = useCallback(() => {
     const payload = JSON.stringify({ meetingId, nodes, edges }, null, 2);
@@ -270,6 +309,7 @@ function FlashCanvasInner({ meetingId }: { meetingId: string }) {
         onSummarize={onSummarize}
         onDemo={onDemo}
         onExport={onExport}
+        onAutoArrange={onAutoArrange}
       />
 
       <SelectedNodePanel

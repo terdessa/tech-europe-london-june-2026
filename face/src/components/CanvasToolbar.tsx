@@ -11,6 +11,7 @@ type Props = {
   onSummarize: () => void;
   onDemo: () => void;
   onExport: () => void;
+  onAutoArrange: () => void;
 };
 
 function syncLabel(lastSync: number | null): string {
@@ -29,6 +30,7 @@ export default function CanvasToolbar({
   onSummarize,
   onDemo,
   onExport,
+  onAutoArrange,
 }: Props) {
   const [prompt, setPrompt] = useState("");
 
@@ -66,6 +68,9 @@ export default function CanvasToolbar({
         </form>
 
         <div className="toolbar-actions">
+          <button type="button" className="btn" onClick={onAutoArrange}>
+            Auto-arrange
+          </button>
           <button
             type="button"
             className="btn"
