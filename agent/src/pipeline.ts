@@ -19,19 +19,21 @@ export interface PipelineOptions {
 // which are brain requests.
 const SCREEN_HINT = /\b(screen|slide|sharing|shared|what'?s on)\b/i;
 
+// Strip punctuation/case so "Hey, Flash." matches the wake phrase "hey flash".
+const normalize = (s: string): string =>
+  s.toLowerCase().replace(/[^a-z0-9\s]/g, " ").replace(/\s+/g, " ").trim();
+
 /** Builds the per-utterance handler: capture context, detect wake, respond. */
 export function createPipeline({ responder, describeScreen }: PipelineOptions) {
   return async function handleUtterance(u: Utterance): Promise<void> {
     console.log(`[${u.speaker}] ${u.text}`);
     await ingest(u);
 
-    const idx = u.text.toLowerCase().indexOf(CONFIG.wakePhrase);
+    const normText = normalize(u.text);
+    const idx = normText.indexOf(CONFIG.wakePhrase);
     if (idx === -1) return; // passive: just captured it
 
-    const requestText = u.text
-      .slice(idx + CONFIG.wakePhrase.length)
-      .replace(/^[,:.!?\s]+/, "")
-      .trim();
+    const requestText = normText.slice(idx + CONFIG.wakePhrase.length).trim();
     console.log(`[wake] "${CONFIG.wakePhrase}" -> request: "${requestText}"`);
 
     await responder.speak("One sec…");
