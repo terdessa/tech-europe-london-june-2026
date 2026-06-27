@@ -1,51 +1,69 @@
-# CLAUDE.md
+# CLAUDE.md — Rahid
 
 Project guidance for Claude Code. Read this first each session.
 
-> **Status:** Concept in flux — pivoting to an **interactive meeting copilot** (real-time hints/answers during live meetings, not passive transcription). Design TBD; this file holds the stable, idea-agnostic guidance. Event rules/prizes: [`HACKATHON_MANUAL.md`](./HACKATHON_MANUAL.md).
+## What we're building
+
+**Rahid** — an AI agent that **joins your meeting as a third participant**. It listens passively (never interrupts), writes down the full context, and the moment you say **"Hey Rahid"** it wakes up, talks back with voice, and helps you *in the moment* — answering questions or generating diagrams grounded in your prep docs and the live discussion. When the meeting ends, the entire context becomes a reusable brain: a pop-up app where you can ask anything ("based on our meeting, what's the best approach to X?").
+
+> **The wedge (say this in the pitch):** Google Meet / Granola give you a *passive summary after the fact*. Rahid is **active in the moment + one context reused live and after**. That's the difference.
+
+- Full architecture + shared contracts: [`ARCHITECTURE.md`](./ARCHITECTURE.md)
+- Per-person build plans: [`plans/`](./plans/)
+- Event rules/prizes: [`HACKATHON_MANUAL.md`](./HACKATHON_MANUAL.md)
 
 ## Hard rules (don't break these)
 
-- **Qualification:** must use **≥3 Resources partners** (Gemini, Superlinked, n8n, Tavily, SLNG, Attio, Mubit). Aim: **Gemini + Superlinked + n8n** as the core three.
-- **Aikido does NOT count toward the 3** — it's a bonus side challenge (€1000), run near the end: connect repo → screenshot report.
-- **No secrets in the repo.** API keys via env vars only (`.env`, gitignored; ship `.env.example`). Aikido scans this repo.
-- Built fresh at the event (boilerplates allowed).
+- **Qualification:** must use **≥3 Resources partners**. Ours: **Gemini + Superlinked + n8n** (qualifying #1–3) **+ SLNG** (qualifying #4, voice). 
+- **Aikido does NOT count toward the 3** — it's the €1000 bonus side challenge + our security story. **LiveKit is infra, not a partner** (doesn't count).
+- **Grounded, not hallucinated.** Live answers + diagrams must be grounded in retrieved context (Superlinked over prep docs + live transcript). Rahid cites sources.
+- **No secrets in the repo.** API keys via env vars only (`.env`, gitignored; ship `.env.example`). Aikido scans this repo — keep it clean.
+- Built fresh at the event.
 
-## Track & strategy
+## The five tracks (4 engineers + 1 demo/story)
 
-- **Open Innovation track.** Judged on **creativity + technical complexity**, bonus for partner usage.
-- Stack side challenges from one coherent build: **Superlinked $500**, **n8n** (1yr Cloud Pro + $500), **Aikido €1000**, plus Tavily/SLNG/Mubit where they map to a real feature (not decoration).
+| Track | Plan | Owns | Partner |
+|---|---|---|---|
+| Ears & Mouth | [`plans/p1-ears-and-mouth.md`](./plans/p1-ears-and-mouth.md) | LiveKit agent, audio, wake-word, SLNG STT/TTS | SLNG |
+| Memory | [`plans/p2-memory.md`](./plans/p2-memory.md) | Superlinked context store + retrieval API | Superlinked |
+| Brain | [`plans/p3-brain.md`](./plans/p3-brain.md) | n8n agent workflow + Gemini + diagram generation | n8n, Gemini |
+| Face | [`plans/p4-face.md`](./plans/p4-face.md) | Web app, diagram render, post-meeting Q&A, Aikido | (Aikido) |
+| Demo & Story | [`plans/p5-demo-and-story.md`](./plans/p5-demo-and-story.md) | Pitch, demo script, Loom, slides, README, submission | — |
 
-## Partner cheatsheet
+## Stack
 
-| Partner | How |
-|---|---|
-| Gemini (DeepMind) | Frontier multimodal model (the "many inputs / many outputs" capability). Abstract behind one LLM module; confirm SDK/model on-site via DeepMind temp accounts. |
-| Superlinked | Semantic vector search over **our own data**. Key/endpoint from `@filipmakraduli`. Python + TS clients. |
-| n8n | The orchestration/automation layer — branching, scheduled, multi-system workflows. Should be technically meaty, not a dumb push step. |
-| Tavily | Real-time web search/extraction (1000 free credits). |
-| SLNG | Voice AI (in/out). Side challenge: LEGO. |
-| Mubit / Minima | Model recommender — route each task to the cheapest model that clears the quality bar. $2000 credits. |
-| Aikido | Free account → connect repo → screenshot security report (bonus €1000). |
+- **Agent runtime:** LiveKit (agent joins the room). Node or Python per P1's choice.
+- **Voice:** SLNG — speech-to-text + text-to-speech.
+- **Memory:** Superlinked (semantic index over transcript + prep docs).
+- **Brain:** n8n workflows orchestrating Gemini calls (live agent flow + post-meeting pipeline).
+- **Frontend:** React + Vite + TypeScript; Mermaid for diagram rendering.
+- **Security:** Aikido repo scan.
+- **Glue:** components talk over HTTP/JSON keyed by `meetingId` (see `ARCHITECTURE.md`).
 
 ## Coding conventions (from global rules)
 
-- **Immutability:** never mutate state objects — return new copies.
-- **Small files:** 200–400 lines typical, 800 max; organize by feature/domain, not by type.
-- Validate at boundaries (tool args, API responses). Handle errors explicitly; no silent swallow.
+- **Immutability:** never mutate shared state objects — return new copies.
+- **Small files:** 200–400 lines typical, 800 max; organize by feature.
+- Validate at boundaries (API payloads, tool args). Handle errors explicitly; no silent swallow.
 - Naming: `camelCase` vars/fns, `PascalCase` types/components, `UPPER_SNAKE_CASE` consts.
-- Tests for the pure logic that matters most.
+- Tests for the pure logic that matters (retrieval shaping, diagram code gen, context assembly).
 
-## Build order (get end-to-end working before polish)
+## Build order (end-to-end before polish)
 
-1. Nail the single source-of-truth state model first.
-2. Core happy path end-to-end with stubs before any real partner integration.
-3. Swap stubs for real partner calls one at a time.
-4. Aikido scan + screenshot (end).
+1. **Freeze the shared contracts** (`ARCHITECTURE.md`) — 30 min, all together.
+2. Each track builds against **mocks** (no waiting on anyone).
+3. Build the **controllable wow first**: grounded diagram + post-meeting Q&A (lower risk than live join).
+4. Integrate: P1→P2 (utterances) → P3 uses P2 retrieve → P1↔P3 (request→response→TTS) → P4 renders.
+5. Wire the **live LiveKit join** (riskiest — has a fallback: run Rahid in our own call UI).
+6. Aikido scan + README + Loom (end).
+
+## Demo (the money shot)
+
+Two people talk in a Google Meet; Rahid is the third. One says *"we have 5,000 budget — spent 500 on X, 1,000 on Y…"* → **"Hey Rahid, make a diagram of that"** → diagram appears in chat. Meeting ends → pop-up app → *"based on the meeting, what should we cut?"* → grounded answer. **One context, two uses, on stage.**
 
 ## Submission (due 19:00)
 
-Public GitHub repo + README, 2-min Loom demo, confirm Superlinked/n8n usage, Aikido screenshot.
+Public GitHub repo + README, 2-min Loom, confirm Superlinked + n8n + SLNG usage, Aikido screenshot.
 
 ## Environment notes
 
