@@ -73,6 +73,16 @@ const MIC_SCRIPT = `
 })();
 `;
 
+// Injected BEFORE Meet runs. Hides the most obvious automation signals so Google
+// doesn't refuse with "You can't join this video call" / "unsupported browser".
+const STEALTH_SCRIPT = `
+(() => {
+  try { Object.defineProperty(navigator, 'webdriver', { get: () => undefined }); } catch (e) {}
+  try { if (!navigator.languages || !navigator.languages.length) Object.defineProperty(navigator, 'languages', { get: () => ['en-US','en'] }); } catch (e) {}
+  try { window.chrome = window.chrome || { runtime: {} }; } catch (e) {}
+})();
+`;
+
 /**
  * Joins a Google Meet as a separate guest named "Flash" (NOT your account),
  * captures the meeting audio for STT, can post chat, and screenshot the tab.
@@ -134,6 +144,7 @@ export class MeetBot {
     }
 
     await this.ctx.exposeBinding("__flashAudio", (_src, b64: string) => this.audioHandler?.(b64));
+    await this.ctx.addInitScript(STEALTH_SCRIPT);
     await this.ctx.addInitScript(CAPTURE_SCRIPT);
     await this.ctx.addInitScript(MIC_SCRIPT);
 

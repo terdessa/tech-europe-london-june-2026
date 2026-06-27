@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "tsx watch src/index.ts",
     "start": "tsx src/index.ts",
+    "meet:login": "tsx src/login.ts",
     "typecheck": "tsc --noEmit",
     "postinstall-note": "run: npx playwright install chromium"
   },

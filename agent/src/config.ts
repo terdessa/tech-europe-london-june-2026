@@ -13,8 +13,12 @@ export const CONFIG = {
 
   /** Meeting source: "mock" (replay transcript) | "real" (join a Google Meet). */
   meetMode: (process.env.MEET_MODE ?? "mock").toLowerCase(),
-  /** Chrome profile dir so you sign in to Google once and reuse it. */
-  userDataDir: process.env.MEET_USER_DATA_DIR ?? path.resolve(__dirname, "../.meet-profile"),
+  /** Chrome profile dir so Flash signs in to Google once and reuses it.
+   *  Empty/unset -> default persistent profile (signed-in joins are far more
+   *  reliable: anonymous guests get "You can't join this video call"). */
+  userDataDir:
+    (process.env.MEET_USER_DATA_DIR && process.env.MEET_USER_DATA_DIR.trim()) ||
+    path.resolve(__dirname, "../.meet-profile"),
 
   /** Voice backend: "console" (log) | "local" (Windows TTS, zero-key) | "slng". */
   voice: (process.env.VOICE ?? "console").toLowerCase(),
