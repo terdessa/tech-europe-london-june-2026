@@ -1,4 +1,4 @@
-import { chromium, type Browser, type BrowserContext, type Page } from "playwright";
+import { chromium, type Browser, type BrowserContext, type Locator, type Page } from "playwright";
 import { CONFIG } from "./config";
 
 // Injected into the meeting page BEFORE Meet's scripts run.
@@ -13,9 +13,12 @@ const CAPTURE_SCRIPT = `
   const ctx = new AC();
   const dest = ctx.createMediaStreamDestination();
   function add(stream){ try { stream.getAudioTracks().forEach(function(t){ ctx.createMediaStreamSource(new MediaStream([t])).connect(dest); }); } catch(e){} }
-  function Patched(){ const pc = new Orig(...arguments); pc.addEventListener('track', function(e){ if (e.track && e.track.kind === 'audio') add(e.streams && e.streams[0] ? e.streams[0] : new MediaStream([e.track])); }); return pc; }
+  let trackCount = 0;
+  function Patched(){ const pc = new Orig(...arguments); pc.addEventListener('track', function(e){ if (e.track && e.track.kind === 'audio'){ trackCount++; console.log('[cap] audio track added (#' + trackCount + ')'); add(e.streams && e.streams[0] ? e.streams[0] : new MediaStream([e.track])); } }); return pc; }
   Patched.prototype = Orig.prototype;
+  Object.setPrototypeOf(Patched, Orig); // inherit static methods (e.g. generateCertificate) so Meet keeps working
   window.RTCPeerConnection = Patched;
+  window.webkitRTCPeerConnection = Patched;
   function toB64(u8){ let s=''; for (let i=0;i<u8.length;i+=0x8000){ s += String.fromCharCode.apply(null, u8.subarray(i, i+0x8000)); } return btoa(s); }
   window.__flashStartRec = async function(){
     try { if (ctx.state === 'suspended') await ctx.resume(); } catch(e){}
@@ -24,10 +27,12 @@ const CAPTURE_SCRIPT = `
       const chunks = [];
       mr.ondataavailable = function(e){ if (e.data && e.data.size) chunks.push(e.data); };
       mr.onstop = async function(){
-        try { const buf = new Uint8Array(await new Blob(chunks, { type:'audio/webm' }).arrayBuffer()); if (buf.length > 2000 && window.__flashAudio) window.__flashAudio(toB64(buf)); } catch(e){}
+        try { const buf = new Uint8Array(await new Blob(chunks, { type:'audio/webm' }).arrayBuffer()); if (buf.length > 2000 && window.__flashAudio) window.__flashAudio(toB64(buf)); } catch(e){ console.log('[cap] rec stop error', e && e.message); }
         rec();
       };
-      mr.start(); setTimeout(function(){ try { mr.stop(); } catch(e){} }, 4000);
+      try { mr.start(); } catch(e){ console.log('[cap] MediaRecorder start failed', e && e.message); return; }
+      console.log('[cap] recording window started');
+      setTimeout(function(){ try { mr.stop(); } catch(e){} }, 4000);
     }
     rec();
   };
@@ -110,6 +115,13 @@ export class MeetBot {
       this.ctx = await this.browser.newContext(ctxOpts);
       this.page = await this.ctx.newPage();
     }
+    // Surface the in-page capture diagnostics ([cap] ...) in the agent log so we
+    // can see track/recorder activity without opening devtools.
+    this.page.on("console", (msg) => {
+      const t = msg.text();
+      if (t.startsWith("[cap]")) console.log(`[page] ${t}`);
+    });
+
     try {
       await this.ctx.grantPermissions(["microphone", "camera"], { origin: "https://meet.google.com" });
     } catch {
@@ -134,51 +146,74 @@ export class MeetBot {
       }
     }
 
-    // Guest name prompt.
-    try {
-      const nameInput = page.getByPlaceholder(/your name/i);
-      if (await nameInput.isVisible({ timeout: 8000 })) await nameInput.fill(CONFIG.displayName);
-    } catch {
-      /* signed-in profile: no name prompt */
-    }
-
-    // Turn the camera + mic OFF on the green room so there's no device wall
-    // (Flash speaks via the injected mic later; we unmute then).
-    for (const label of [/turn off camera/i, /turn off microphone/i]) {
+    // Meet renders the green room slowly and the join button only enables after
+    // the name is filled + devices initialise. Poll for up to ~30s: each round we
+    // (re)fill the name, dismiss interstitials, turn cam/mic off, and try to click
+    // any join control. This is far more robust than one-shot timeouts.
+    const visible = async (loc: Locator): Promise<boolean> => {
       try {
-        const btn = page.getByRole("button", { name: label });
-        if (await btn.isVisible({ timeout: 1500 })) await btn.click();
+        return (await loc.count()) > 0 && (await loc.first().isVisible());
       } catch {
-        /* already off / not present */
+        return false;
       }
-    }
+    };
 
-    // Dismiss any "continue without microphone and camera" interstitial.
-    try {
-      const cont = page.getByRole("button", { name: /continue without|got it|dismiss/i });
-      if (await cont.isVisible({ timeout: 1500 })) await cont.click();
-    } catch {
-      /* none */
-    }
-
-    // Click whichever join control is present.
     let asked = false;
-    for (const label of [/ask to join/i, /join now/i, /^join$/i]) {
+    const deadline = Date.now() + 30000;
+    while (Date.now() < deadline && !asked) {
+      // (Re)fill the guest name if the field is present and empty.
       try {
-        const btn = page.getByRole("button", { name: label });
-        if (await btn.isVisible({ timeout: 6000 })) {
-          await btn.click();
-          asked = true;
-          break;
+        const nameInput = page.getByPlaceholder(/your name/i);
+        if (await visible(nameInput)) {
+          const current = await nameInput.first().inputValue().catch(() => "");
+          if (!current) await nameInput.first().fill(CONFIG.displayName);
         }
       } catch {
-        /* try next */
+        /* signed-in profile: no name prompt */
       }
+
+      // Turn camera + mic OFF on the green room (Flash speaks via injected mic later).
+      for (const label of [/turn off camera/i, /turn off microphone/i]) {
+        try {
+          const btn = page.getByRole("button", { name: label });
+          if (await visible(btn)) await btn.first().click({ timeout: 1200 });
+        } catch {
+          /* already off / not present */
+        }
+      }
+
+      // Dismiss interstitials ("continue without mic & camera", "Got it", etc.).
+      try {
+        const cont = page.getByRole("button", { name: /continue without|got it|dismiss|^ok$/i });
+        if (await visible(cont)) await cont.first().click({ timeout: 1200 });
+      } catch {
+        /* none */
+      }
+
+      // Try every join-control variant.
+      for (const label of [/ask to join/i, /join now/i, /^join$/i]) {
+        try {
+          const btn = page.getByRole("button", { name: label });
+          if (await visible(btn)) {
+            await btn.first().click({ timeout: 2000 });
+            asked = true;
+            break;
+          }
+        } catch {
+          /* try next variant */
+        }
+      }
+
+      if (!asked) await page.waitForTimeout(1200);
     }
-    if (!asked) {
-      console.warn('[meet] no join button found — check the open browser (sign-in wall or "Ask to join" not shown).');
+
+    if (asked) {
+      console.log(`[meet] "${CONFIG.displayName}" asked to join — Admit it from your meeting.`);
+    } else {
+      console.warn(
+        "[meet] no join button after 30s — the open browser may show a sign-in wall or a different layout. Click Join manually in that window.",
+      );
     }
-    console.log(`[meet] "${CONFIG.displayName}" is asking to join — Admit it from your meeting.`);
   }
 
   /** Start capturing meeting audio; each ~4s WebM window's base64 goes to onChunk. */

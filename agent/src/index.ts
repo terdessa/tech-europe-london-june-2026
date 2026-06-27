@@ -146,9 +146,19 @@ async function startRealMeet(meetingId: string, meetUrl: string): Promise<void> 
   if (!CONFIG.slngApiKey) {
     console.warn("[stt] no SLNG_API_KEY — Flash can't hear. Set SLNG_API_KEY in .env.");
   }
+  let chunkCount = 0;
+  let lastEarsLog = 0;
   await activeBot.startAudioCapture((b64) => {
     void (async () => {
       try {
+        chunkCount += 1;
+        const bytes = Math.floor((b64.length * 3) / 4);
+        // Heartbeat so it's obvious audio is (or isn't) flowing — once on the
+        // first chunk, then at most every 15s.
+        if (chunkCount === 1 || Date.now() - lastEarsLog > 15000) {
+          lastEarsLog = Date.now();
+          console.log(`[ears] audio chunk #${chunkCount} (${bytes} bytes) — capturing`);
+        }
         if (speaking || Date.now() < deafUntil) return; // ignore Flash's own voice
         const text = await transcribe(Buffer.from(b64, "base64"));
         if (!text) return;
