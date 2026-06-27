@@ -9,6 +9,7 @@ dist/
 build/
 *.log
 npm-debug.log*
+.n8n-local/
 
 # python
 __pycache__/
