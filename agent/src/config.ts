@@ -21,6 +21,11 @@ export const CONFIG = {
   slngApiKey: process.env.SLNG_API_KEY ?? "",
   slngTtsUrl: process.env.SLNG_TTS_URL ?? "https://api.slng.ai/v1/tts/slng/deepgram/aura:2-en",
   slngModel: process.env.SLNG_TTS_MODEL ?? "aura-2-thalia-en",
+  /** SLNG speech-to-text (the "ears"): captures meeting audio -> transcript. */
+  slngSttUrl: process.env.SLNG_STT_URL ?? "https://api.slng.ai/v1/stt/slng/deepgram/nova:3-en",
+
+  /** Optional: auto-join this Meet on startup (no /join call needed). */
+  meetUrl: process.env.MEET_URL ?? "",
 
   /** Screen capture (eyes). When on, Flash passively watches shared screens + answers screen questions. */
   screenCapture: (process.env.SCREEN_CAPTURE ?? "off").toLowerCase() === "on",

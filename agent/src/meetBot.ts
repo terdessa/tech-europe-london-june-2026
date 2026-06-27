@@ -1,52 +1,89 @@
-import { chromium, type BrowserContext, type Page } from "playwright";
+import { chromium, type Browser, type BrowserContext, type Page } from "playwright";
 import { CONFIG } from "./config";
 
-export interface CaptionLine {
-  speaker: string;
-  text: string;
-}
+// Injected into the meeting page BEFORE Meet's scripts run.
+// Taps every inbound WebRTC audio track, mixes them, and records 4s WebM windows,
+// handing each window's base64 to window.__flashAudio (exposed from Node).
+const CAPTURE_SCRIPT = `
+(() => {
+  if (window.__flashCapInit) return; window.__flashCapInit = true;
+  const Orig = window.RTCPeerConnection;
+  if (!Orig) return;
+  const AC = window.AudioContext || window.webkitAudioContext;
+  const ctx = new AC();
+  const dest = ctx.createMediaStreamDestination();
+  function add(stream){ try { stream.getAudioTracks().forEach(function(t){ ctx.createMediaStreamSource(new MediaStream([t])).connect(dest); }); } catch(e){} }
+  function Patched(){ const pc = new Orig(...arguments); pc.addEventListener('track', function(e){ if (e.track && e.track.kind === 'audio') add(e.streams && e.streams[0] ? e.streams[0] : new MediaStream([e.track])); }); return pc; }
+  Patched.prototype = Orig.prototype;
+  window.RTCPeerConnection = Patched;
+  function toB64(u8){ let s=''; for (let i=0;i<u8.length;i+=0x8000){ s += String.fromCharCode.apply(null, u8.subarray(i, i+0x8000)); } return btoa(s); }
+  window.__flashStartRec = async function(){
+    try { if (ctx.state === 'suspended') await ctx.resume(); } catch(e){}
+    function rec(){
+      let mr; try { mr = new MediaRecorder(dest.stream, { mimeType: 'audio/webm' }); } catch(e){ return; }
+      const chunks = [];
+      mr.ondataavailable = function(e){ if (e.data && e.data.size) chunks.push(e.data); };
+      mr.onstop = async function(){
+        try { const buf = new Uint8Array(await new Blob(chunks, { type:'audio/webm' }).arrayBuffer()); if (buf.length > 2000 && window.__flashAudio) window.__flashAudio(toB64(buf)); } catch(e){}
+        rec();
+      };
+      mr.start(); setTimeout(function(){ try { mr.stop(); } catch(e){} }, 4000);
+    }
+    rec();
+  };
+})();
+`;
 
 /**
- * Joins a Google Meet in a visible Chromium (persistent profile so you sign in once),
- * reads live captions (zero-key STT), posts chat, and screenshots the tab.
+ * Joins a Google Meet as a separate guest named "Flash" (NOT your account),
+ * captures the meeting audio for STT, can post chat, and screenshot the tab.
  *
- * NOTE: Google Meet's DOM is obfuscated and changes — selectors here are best-effort
- * with fallbacks. The browser is visible so you can click Join / turn on captions
- * manually if automation misses. The pipeline (wake-word, voice, context) works
- * regardless of how captions arrive.
+ * The browser is visible: you just **Admit "Flash"** when it asks to join.
  */
 export class MeetBot {
+  private browser?: Browser;
   private ctx?: BrowserContext;
   private page?: Page;
-  private pollTimer?: NodeJS.Timeout;
+  private audioHandler?: (b64: string) => void;
 
   async join(meetUrl: string): Promise<void> {
-    this.ctx = await chromium.launchPersistentContext(CONFIG.userDataDir, {
-      headless: false,
-      viewport: null,
-      args: [
-        "--use-fake-ui-for-media-stream", // auto-accept mic/cam prompts
-        "--disable-blink-features=AutomationControlled",
-      ],
-    });
-    this.page = this.ctx.pages()[0] ?? (await this.ctx.newPage());
-    const page = this.page;
+    const args = [
+      "--use-fake-ui-for-media-stream",
+      "--use-fake-device-for-media-stream",
+      "--autoplay-policy=no-user-gesture-required",
+      "--disable-blink-features=AutomationControlled",
+    ];
 
-    await page.goto(meetUrl, { waitUntil: "load", timeout: 60000 });
-
-    // Best-effort: type a display name if this is a guest join.
-    try {
-      const nameInput = page.getByPlaceholder(/your name/i);
-      if (await nameInput.isVisible({ timeout: 3000 })) await nameInput.fill(CONFIG.displayName);
-    } catch {
-      /* signed-in account: no name prompt */
+    if (CONFIG.userDataDir && CONFIG.userDataDir.trim()) {
+      // Persistent profile (use a DEDICATED Flash Google account here, not your own).
+      this.ctx = await chromium.launchPersistentContext(CONFIG.userDataDir, { headless: false, viewport: null, args });
+      this.page = this.ctx.pages()[0] ?? (await this.ctx.newPage());
+    } else {
+      // Ephemeral guest browser -> Flash is a separate participant.
+      this.browser = await chromium.launch({ headless: false, args });
+      this.ctx = await this.browser.newContext({ viewport: null });
+      this.page = await this.ctx.newPage();
     }
 
-    // Best-effort: click join / ask to join.
-    for (const label of [/join now/i, /ask to join/i]) {
+    await this.ctx.exposeBinding("__flashAudio", (_src, b64: string) => this.audioHandler?.(b64));
+    await this.ctx.addInitScript(CAPTURE_SCRIPT);
+
+    const page = this.page;
+    await page.goto(meetUrl, { waitUntil: "load", timeout: 60000 });
+
+    // Guest name prompt.
+    try {
+      const nameInput = page.getByPlaceholder(/your name/i);
+      if (await nameInput.isVisible({ timeout: 4000 })) await nameInput.fill(CONFIG.displayName);
+    } catch {
+      /* signed-in profile: no name prompt */
+    }
+
+    // Auto-join.
+    for (const label of [/ask to join/i, /join now/i]) {
       try {
         const btn = page.getByRole("button", { name: label });
-        if (await btn.isVisible({ timeout: 3000 })) {
+        if (await btn.isVisible({ timeout: 4000 })) {
           await btn.click();
           break;
         }
@@ -54,60 +91,18 @@ export class MeetBot {
         /* try next */
       }
     }
-
-    console.log(
-      "[meet] join attempted. If Flash isn't in yet: admit it from the meeting, " +
-        "and turn on Captions (CC) so it can hear.",
-    );
+    console.log(`[meet] "${CONFIG.displayName}" is asking to join — Admit it from your meeting.`);
   }
 
-  async enableCaptions(): Promise<void> {
-    const page = this.page;
-    if (!page) return;
+  /** Start capturing meeting audio; each ~4s WebM window's base64 goes to onChunk. */
+  async startAudioCapture(onChunk: (b64: string) => void): Promise<void> {
+    this.audioHandler = onChunk;
     try {
-      const cc = page.getByRole("button", { name: /captions|turn on captions|cc/i });
-      if (await cc.isVisible({ timeout: 5000 })) {
-        await cc.click();
-        console.log("[meet] captions enabled");
-      }
-    } catch {
-      console.log("[meet] could not auto-enable captions — please click CC manually.");
+      await this.page?.evaluate("window.__flashStartRec && window.__flashStartRec()");
+      console.log("[meet] audio capture started (SLNG STT)");
+    } catch (err) {
+      console.warn("[meet] could not start audio capture:", (err as Error).message);
     }
-  }
-
-  /** Poll the captions region and emit each finalized line once. */
-  startCaptions(onLine: (line: CaptionLine) => void): void {
-    const page = this.page;
-    if (!page) return;
-    const seen = new Set<string>();
-
-    this.pollTimer = setInterval(async () => {
-      try {
-        const blocks = await page.evaluate(() => {
-          const el =
-            (document.querySelector('[aria-label="Captions"]') as HTMLElement | null) ??
-            (document.querySelector('[aria-label*="aption" i][role="region"]') as HTMLElement | null) ??
-            (document.querySelector('[jsname][aria-live="polite"]') as HTMLElement | null);
-          if (!el) return [];
-          // Caption entries usually render as "<speaker>\n<text>".
-          return el.innerText
-            .split("\n")
-            .map((s) => s.trim())
-            .filter(Boolean);
-        });
-
-        // Emit lines that look stable. Skip the very last block (still being spoken).
-        for (let i = 0; i < blocks.length - 1; i++) {
-          const line = blocks[i];
-          if (line.length < 2 || seen.has(line)) continue;
-          seen.add(line);
-          if (seen.size > 1000) seen.clear(); // cap memory over a long meeting
-          onLine({ speaker: "Participant", text: line });
-        }
-      } catch {
-        /* page navigating / not ready */
-      }
-    }, 1500);
   }
 
   /** Post a message into the Meet chat (best-effort). */
@@ -121,7 +116,7 @@ export class MeetBot {
       await input.fill(`${CONFIG.agentName}: ${text}`);
       await input.press("Enter");
     } catch {
-      console.warn("[meet] could not post chat (open the chat panel manually if needed)");
+      console.warn("[meet] could not post chat");
     }
   }
 
@@ -153,7 +148,7 @@ export class MeetBot {
   }
 
   async close(): Promise<void> {
-    if (this.pollTimer) clearInterval(this.pollTimer);
     await this.ctx?.close();
+    await this.browser?.close();
   }
 }

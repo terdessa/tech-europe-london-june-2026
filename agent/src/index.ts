@@ -7,6 +7,7 @@ import { createPipeline, type Responder } from "./pipeline";
 import { MeetBot } from "./meetBot";
 import { ingest } from "./contextClient";
 import { describeScreen as visionDescribe } from "./visionClient";
+import { transcribe } from "./sttClient";
 
 const app = express();
 app.use(express.json());
@@ -60,7 +61,6 @@ async function startRealMeet(meetingId: string, meetUrl: string): Promise<void> 
   await bot?.close();
   bot = new MeetBot();
   await bot.join(meetUrl);
-  await bot.enableCaptions();
 
   const activeBot = bot;
   const responder: Responder = {
@@ -86,10 +86,22 @@ async function startRealMeet(meetingId: string, meetUrl: string): Promise<void> 
     responder,
     describeScreen: CONFIG.screenCapture ? () => captureScreen() : undefined,
   });
-  activeBot.startCaptions((line) => {
-    handle({ meetingId, speaker: line.speaker, ts: nowSec(), text: line.text } as Utterance).catch((e) =>
-      console.error("[pipeline] error:", (e as Error).message),
-    );
+
+  // EARS: capture meeting audio -> SLNG STT -> pipeline (passive ingest + wake-word).
+  if (!CONFIG.slngApiKey) {
+    console.warn("[stt] no SLNG_API_KEY — Flash can't hear. Set SLNG_API_KEY in .env.");
+  }
+  await activeBot.startAudioCapture((b64) => {
+    void (async () => {
+      try {
+        const text = await transcribe(Buffer.from(b64, "base64"));
+        if (!text) return;
+        console.log("[heard]", text);
+        await handle({ meetingId, speaker: "Participant", ts: nowSec(), text, source: "live" } as Utterance);
+      } catch (e) {
+        console.error("[pipeline] error:", (e as Error).message);
+      }
+    })();
   });
 
   // PASSIVE screen watching: auto-capture whenever someone is presenting (no wake-word needed).
@@ -111,8 +123,17 @@ async function startRealMeet(meetingId: string, meetUrl: string): Promise<void> 
 
 app.listen(CONFIG.port, () => {
   console.log(`${CONFIG.agentName} agent runtime on :${CONFIG.port} (mode=${CONFIG.meetMode}, voice=${CONFIG.voice})`);
-  console.log(
-    `Join (PowerShell):  Invoke-RestMethod -Uri http://localhost:${CONFIG.port}/join -Method Post ` +
-      `-ContentType "application/json" -Body '{"meetingId":"m1","meetUrl":"<your meet link>"}'`,
-  );
+
+  // Auto-join on startup when MEET_URL is set — no /join call needed.
+  if (CONFIG.meetMode === "real" && CONFIG.meetUrl) {
+    console.log(`[auto-join] joining ${CONFIG.meetUrl} as "${CONFIG.displayName}"`);
+    startRealMeet("auto", CONFIG.meetUrl).catch((e) =>
+      console.error("[auto-join] failed:", (e as Error).message),
+    );
+  } else {
+    console.log(
+      `Join (PowerShell):  Invoke-RestMethod -Uri http://localhost:${CONFIG.port}/join -Method Post ` +
+        `-ContentType "application/json" -Body '{"meetingId":"m1","meetUrl":"<your meet link>"}'`,
+    );
+  }
 });
