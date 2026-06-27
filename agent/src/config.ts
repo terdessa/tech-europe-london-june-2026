@@ -14,4 +14,8 @@ export const CONFIG = {
   /** P3 — n8n brain. Empty = stubbed response. */
   n8nWebhookBase: process.env.N8N_WEBHOOK_BASE ?? "",
   slngApiKey: process.env.SLNG_API_KEY ?? "",
+  /** TTS endpoint from SLNG docs (set once you have it). */
+  slngTtsUrl: process.env.SLNG_TTS_URL ?? "",
+  /** Which voice backend: "console" (log) or "slng" (real TTS). */
+  voice: (process.env.VOICE ?? "console").toLowerCase(),
 } as const;

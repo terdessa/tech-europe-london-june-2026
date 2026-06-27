@@ -2,13 +2,13 @@ import express from "express";
 import type { JoinRequest, JoinResponse } from "../../shared/contracts";
 import { CONFIG } from "./config";
 import { MockAudioSource, type AudioSource } from "./audioSource";
-import { ConsoleSpeaker } from "./speaker";
+import { createSpeaker } from "./speaker";
 import { createPipeline } from "./pipeline";
 
 const app = express();
 app.use(express.json());
 
-const speaker = new ConsoleSpeaker(); // M1: -> SlngSpeaker
+const speaker = createSpeaker(); // VOICE=console | slng
 const handleUtterance = createPipeline(speaker);
 let source: AudioSource | null = null;
 

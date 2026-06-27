@@ -26,3 +26,6 @@ data/context/
 .DS_Store
 .idea/
 .vscode/
+
+# tts audio output
+data/tts/
