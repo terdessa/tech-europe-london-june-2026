@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { CANVAS_EDGE_TYPES, type CanvasEdgeType } from "@/lib/canvasTypes";
 
 type EndState = "idle" | "ending" | "ended" | "error";
@@ -47,6 +47,8 @@ export default function CanvasToolbar({
   const [prompt, setPrompt] = useState("");
   const [endState, setEndState] = useState<EndState>("idle");
   const [clearing, setClearing] = useState(false);
+  const [restartState, setRestartState] = useState<"idle" | "restarting" | "done">("idle");
+  const router = useRouter();
 
   // The toolbar lives under /m/[meetingId]; read the id from the route rather
   // than threading a new prop through FlashCanvas.
@@ -102,6 +104,30 @@ export default function CanvasToolbar({
       setClearing(false);
     }
   }
+
+  // Restart Flash: soft-reset the agent (close any stuck Meet browser/state) so
+  // it responds again. Doesn't touch the canvas.
+  async function restartFlash() {
+    if (restartState === "restarting") return;
+    setRestartState("restarting");
+    try {
+      await fetch(`/api/agent/restart`, { method: "POST" });
+      setRestartState("done");
+      setTimeout(() => setRestartState("idle"), 2500);
+    } catch {
+      setRestartState("idle");
+    }
+  }
+
+  // New meeting: end the current meeting (tell Flash to leave) and go back to the
+  // home page to add Flash to a fresh meeting.
+  async function newMeeting() {
+    await fetch(`/api/agent/leave`, { method: "POST" }).catch(() => undefined);
+    router.push("/");
+  }
+
+  const restartLabel =
+    restartState === "restarting" ? "Restarting…" : restartState === "done" ? "Restarted ✓" : "Restart Flash";
 
   const endLabel =
     endState === "ending"
@@ -180,6 +206,23 @@ export default function CanvasToolbar({
           </button>
           <button type="button" className="btn" onClick={onExport}>
             Export JSON
+          </button>
+          <button
+            type="button"
+            className="btn"
+            onClick={restartFlash}
+            disabled={restartState === "restarting"}
+            title="Soft-restart the Flash agent if it stops responding"
+          >
+            {restartLabel}
+          </button>
+          <button
+            type="button"
+            className="btn btn-primary"
+            onClick={newMeeting}
+            title="End this meeting and go to the home page to add Flash to a new meeting"
+          >
+            New meeting
           </button>
           <button
             type="button"

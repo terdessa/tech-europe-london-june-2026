@@ -48,3 +48,29 @@ export async function joinMeeting(
     return { ok: false, error: `P1 /join failed: ${String(err)}` };
   }
 }
+
+// POST a simple control action (/leave or /restart) to the agent.
+async function agentAction(path: "leave" | "restart"): Promise<{ ok: boolean; status?: string; error?: string }> {
+  const base = baseUrl();
+  if (!base) return { ok: false, error: "AGENT_URL not configured" };
+  try {
+    const res = await withTimeout((signal) =>
+      fetch(`${base}/${path}`, { method: "POST", signal }),
+    );
+    const json = (await res.json().catch(() => ({}))) as { status?: string; error?: string };
+    if (!res.ok) return { ok: false, error: json.error ?? `P1 /${path} ${res.status}` };
+    return { ok: true, status: json.status };
+  } catch (err) {
+    return { ok: false, error: `P1 /${path} failed: ${String(err)}` };
+  }
+}
+
+// Leave the current meeting (close the bot) without stopping the agent.
+export function leaveMeeting() {
+  return agentAction("leave");
+}
+
+// Soft-restart the agent so Flash responds again after getting stuck.
+export function restartAgent() {
+  return agentAction("restart");
+}

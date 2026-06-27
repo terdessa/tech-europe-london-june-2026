@@ -24,6 +24,44 @@ app.get("/health", (_req, res) =>
   res.json({ ok: true, agent: CONFIG.agentName, mode: CONFIG.meetMode, voice: CONFIG.voice }),
 );
 
+// Tear down everything so Flash returns to a clean, idle state: close the Meet
+// browser, stop the mock source, clear the screen-watch timer. Safe to call any
+// time (used by /leave and /restart). Never throws.
+async function teardown(): Promise<void> {
+  if (screenTimer) {
+    clearInterval(screenTimer);
+    screenTimer = null;
+  }
+  try {
+    await source?.stop();
+  } catch {
+    /* ignore */
+  }
+  source = null;
+  try {
+    await bot?.close();
+  } catch {
+    /* ignore */
+  }
+  bot = null;
+}
+
+// Leave the current meeting (close the bot) but keep the agent running so a new
+// /join works immediately. Used by the UI's "New meeting" action.
+app.post("/leave", async (_req, res) => {
+  console.log("[leave] closing current meeting");
+  await teardown();
+  res.json({ ok: true, status: "left" });
+});
+
+// Soft-restart: tear down any stuck bot/browser/timers and reset Flash to idle
+// so it responds again. Used by the UI's "Restart Flash" button.
+app.post("/restart", async (_req, res) => {
+  console.log("[restart] resetting Flash to a clean state");
+  await teardown();
+  res.json({ ok: true, status: "restarted" });
+});
+
 // P4 launcher dispatches the bot here (ARCHITECTURE §3.8).
 app.post("/join", async (req, res) => {
   const { meetingId, meetUrl } = (req.body ?? {}) as JoinRequest;
