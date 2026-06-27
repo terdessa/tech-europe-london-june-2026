@@ -15,10 +15,10 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "seed:retrieval": "tsx src/seed.ts",
     "lint": "tsc -p tsconfig.json --noEmit",
-    "n8n": "dotenv -e .env.local -- cross-env N8N_USER_FOLDER=.n8n-local N8N_BLOCK_ENV_ACCESS_IN_NODE=false N8N_DIAGNOSTICS_ENABLED=false N8N_VERSION_NOTIFICATIONS_ENABLED=false N8N_TEMPLATES_ENABLED=false n8n",
-    "n8n:activate": "dotenv -e .env.local -- cross-env N8N_USER_FOLDER=.n8n-local N8N_BLOCK_ENV_ACCESS_IN_NODE=false N8N_DIAGNOSTICS_ENABLED=false N8N_VERSION_NOTIFICATIONS_ENABLED=false N8N_TEMPLATES_ENABLED=false n8n publish:workflow --id=flash-agent-p3",
-    "n8n:import": "dotenv -e .env.local -- cross-env N8N_USER_FOLDER=.n8n-local N8N_BLOCK_ENV_ACCESS_IN_NODE=false N8N_DIAGNOSTICS_ENABLED=false N8N_VERSION_NOTIFICATIONS_ENABLED=false N8N_TEMPLATES_ENABLED=false n8n import:workflow --input=Flash-Agent.json",
-    "n8n:start": "dotenv -e .env.local -- cross-env N8N_USER_FOLDER=.n8n-local N8N_BLOCK_ENV_ACCESS_IN_NODE=false N8N_DIAGNOSTICS_ENABLED=false N8N_VERSION_NOTIFICATIONS_ENABLED=false N8N_TEMPLATES_ENABLED=false n8n start",
+    "n8n": "dotenv -e .env -- cross-env N8N_USER_FOLDER=.n8n-local N8N_BLOCK_ENV_ACCESS_IN_NODE=false N8N_DIAGNOSTICS_ENABLED=false N8N_VERSION_NOTIFICATIONS_ENABLED=false N8N_TEMPLATES_ENABLED=false n8n",
+    "n8n:activate": "dotenv -e .env -- cross-env N8N_USER_FOLDER=.n8n-local N8N_BLOCK_ENV_ACCESS_IN_NODE=false N8N_DIAGNOSTICS_ENABLED=false N8N_VERSION_NOTIFICATIONS_ENABLED=false N8N_TEMPLATES_ENABLED=false n8n publish:workflow --id=flash-agent-p3",
+    "n8n:import": "dotenv -e .env -- cross-env N8N_USER_FOLDER=.n8n-local N8N_BLOCK_ENV_ACCESS_IN_NODE=false N8N_DIAGNOSTICS_ENABLED=false N8N_VERSION_NOTIFICATIONS_ENABLED=false N8N_TEMPLATES_ENABLED=false n8n import:workflow --input=Flash-Agent.json",
+    "n8n:start": "dotenv -e .env -- cross-env N8N_USER_FOLDER=.n8n-local N8N_BLOCK_ENV_ACCESS_IN_NODE=false N8N_DIAGNOSTICS_ENABLED=false N8N_VERSION_NOTIFICATIONS_ENABLED=false N8N_TEMPLATES_ENABLED=false n8n start",
     "validate:workflow": "node scripts/validate-workflow.cjs"
   },
   "dependencies": {

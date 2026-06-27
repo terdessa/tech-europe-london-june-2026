@@ -5,6 +5,7 @@
 import { DatabaseSync } from "node:sqlite";
 import fs from "node:fs";
 import path from "node:path";
+import type { MeetingSummaryRow } from "../shared/contracts.js";
 import { config } from "./config.js";
 import { createLogger } from "./logger.js";
 
@@ -171,6 +172,25 @@ export const listUtterances = (meetingId: string): UtteranceRow[] => {
     )
     .all(meetingId) as Record<string, unknown>[];
   return rows.map(asUtterance);
+};
+
+// One row per meeting, summarised for the P4 dashboard history list.
+const asMeetingSummary = (r: Record<string, unknown>): MeetingSummaryRow => ({
+  meetingId: r["meetingId"] as string,
+  lastTs: Number(r["lastTs"]),
+  utteranceCount: Number(r["utteranceCount"]),
+});
+
+export const listMeetings = (): MeetingSummaryRow[] => {
+  const rows = getDb()
+    .prepare(
+      `SELECT meetingId, MAX(ts) AS lastTs, COUNT(*) AS utteranceCount
+       FROM utterances
+       GROUP BY meetingId
+       ORDER BY lastTs DESC`,
+    )
+    .all() as Record<string, unknown>[];
+  return rows.map(asMeetingSummary);
 };
 
 // ---------- Sources ---------------------------------------------------------

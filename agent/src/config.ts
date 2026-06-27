@@ -40,4 +40,6 @@ export const CONFIG = {
   /** Backends (empty -> local-file / stub fallbacks). */
   contextServiceUrl: process.env.CONTEXT_SERVICE_URL ?? "",
   n8nWebhookBase: process.env.N8N_WEBHOOK_BASE ?? "",
+  /** Face web workspace (P4) — live canvas events are pushed here. */
+  faceUrl: process.env.FACE_URL ?? "",
 } as const;

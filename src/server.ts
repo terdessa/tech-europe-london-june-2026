@@ -12,6 +12,7 @@ import { getDb } from "./db.js";
 import { createLogger } from "./logger.js";
 import { describe as describeSuperlinked, isConfigured } from "./retrieval/superlinkedClient.js";
 import { handleIngest } from "./routes/ingest.js";
+import { handleMeetings } from "./routes/meetings.js";
 import { handleRetrieve } from "./routes/retrieve.js";
 import { handleSources } from "./routes/sources.js";
 import { handleTranscript } from "./routes/transcript.js";
@@ -43,6 +44,10 @@ app.get("/retrieve", (req, res) => {
 
 app.get("/transcript", (req, res) => {
   handleTranscript(req, res);
+});
+
+app.get("/meetings", (req, res) => {
+  handleMeetings(req, res);
 });
 
 // JSON 404 — other services parse JSON, never HTML.

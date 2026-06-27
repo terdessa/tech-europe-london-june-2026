@@ -6,6 +6,7 @@ import { createSpeaker, synthesizeSlng } from "./speaker";
 import { createPipeline, type Responder } from "./pipeline";
 import { MeetBot } from "./meetBot";
 import { ingest } from "./contextClient";
+import { postCanvasEvent } from "./faceClient";
 import { describeScreen as visionDescribe } from "./visionClient";
 import { transcribe } from "./sttClient";
 
@@ -96,6 +97,8 @@ async function startRealMeet(meetingId: string, meetUrl: string): Promise<void> 
     if (desc && desc !== lastScreenDesc) {
       lastScreenDesc = desc;
       await ingest({ meetingId, speaker: "Screen", ts: nowSec(), text: desc, source: "screen" });
+      // Screen-shared graphs/tables become a canvas node (non-fatal).
+      void postCanvasEvent(meetingId, { kind: "image", title: "Screen", caption: desc, ts: nowSec() });
       console.log("[screen]", desc.slice(0, 100));
     }
     return desc;
