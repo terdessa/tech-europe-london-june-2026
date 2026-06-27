@@ -81,7 +81,6 @@ function FlashCanvasInner({ meetingId }: { meetingId: string }) {
 
   const versionRef = useRef<number>(-1);
   const draggingRef = useRef<boolean>(false);
-  const seededRef = useRef<boolean>(false);
   // Positions the user has manually dragged — these stay put across re-layouts.
   const pinnedRef = useRef<Map<string, { x: number; y: number }>>(new Map());
   const { fitView } = useReactFlow();
@@ -96,17 +95,6 @@ function FlashCanvasInner({ meetingId }: { meetingId: string }) {
       if (!json?.ok || !json.canvas) return;
       const canvas = json.canvas as Canvas;
       setLastSync(Date.now());
-
-      // Auto-seed the demo meeting once if empty.
-      if (
-        meetingId === "demo" &&
-        !seededRef.current &&
-        canvas.nodes.length === 0
-      ) {
-        seededRef.current = true;
-        await fetch(`${apiBase(meetingId)}/demo`, { method: "POST" });
-        return; // next poll picks up the seeded graph
-      }
 
       // Only replace local state when the server version changed and we are
       // not mid-drag (avoids clobbering an in-flight node move). We ignore the
